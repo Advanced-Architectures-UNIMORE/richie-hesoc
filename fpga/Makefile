@@ -47,7 +47,7 @@ all: build_target fpga_output reports
 # Recipes:		Design reports
 # =====================================================================
 
-reports_fpga: report_area report_power
+reports_fpga: report_area
 
 report_area:
 	@$(VIVADO) $(VIVADO_OPT) \
@@ -68,7 +68,7 @@ open_design:
 
 build_fpga: build_target
 
-build_fpga_date_22: check_exist clean_target build_pulp
+build_fpga_date_22: check_exist clean_fpga build_pulp
 	@$(VIVADO) $(VIVADO_OPT) \
 		-source $(UTILS_HERO)/$(BOARD_TARGET)/date_22_zcu102.tcl \
 		-tclargs $(BUILD_DIR)/$(BUILD_TARGET)/vivado_prj $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips
@@ -76,7 +76,7 @@ build_fpga_date_22: check_exist clean_target build_pulp
 fpga_output:
 	@$(VIVADO) $(VIVADO_OPT) -source $(UTILS_HERO)/$(BOARD_TARGET)/hero_exil$(BOARD_TARGET)_export_hw.tcl -tclargs $(BUILD_TARGET) $(BUILD_DIR)
 
-build_target: check_exist clean_target build_pulp
+build_target: check_exist clean_fpga build_pulp
 	@$(VIVADO) $(VIVADO_OPT) \
 		-source $(UTILS_HERO)/$(BOARD_TARGET)/hero_exil$(BOARD_TARGET).tcl \
 		-tclargs $(BUILD_DIR)/$(BUILD_TARGET)/vivado_prj $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips
@@ -113,7 +113,8 @@ check_exist:
 
 clean_power:
 	@cd $(BUILD_DIR)/$(BUILD_TARGET)/vivado_prj && find . -name "*.saif" -type f -delete
-clean_target:
+
+clean_fpga:
 	@rm -rf $(BUILD_DIR)/$(BUILD_TARGET)
 
 clean_pulp_fpga: check_exist
