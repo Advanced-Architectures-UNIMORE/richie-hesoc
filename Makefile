@@ -22,7 +22,7 @@ VSIM_PATH 				:= $(realpath ${ROOT}/vsim )
 # Description:  Choose a target overlay configuration to be generated.
 # =====================================================================
 
-TARGET_OV               := date22_16cl_1tg
+TARGET_OV               := agile_1cl_16tg
 TARGET_BOARD            := zcu102
 
 GENOV 					= ${ROOT}/../genov
@@ -31,7 +31,7 @@ BENDER 					= ${ROOT}/bender
 BENDER_PKG				= ${SRC_PATH}/${TARGET_OV}/Bender.yml
 BENDER_LOCK				= ${SRC_PATH}/${TARGET_OV}/Bender.lock
 
-.PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim vsim2 vsim3 vsim4 fpga
+.PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim fpga
 
 # =====================================================================
 # Description:  Export reports for DSE.
