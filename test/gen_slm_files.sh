@@ -33,6 +33,7 @@ else
 fi
 
 # clear slm-files of previous simulations
+mkdir -p $dir_slm_files
 if [ -d "$dir_slm_files" ]; then
     rm -f $dir_slm_files/*
 else
@@ -43,6 +44,7 @@ fi
 cd $dir_slm_files
 
 # partition L1 binaries for RTL simulation
+echo -e "Partitioning L1 binaries\n"
 if [ -f "$app_path/${app_name}_l1.slm" ]; then
     $slm_conv --swap-endianness -f "$app_path/${app_name}_l1.slm" \
     -w 32 -P 32 -S 1 -n 2048 -s 0x10000000 -F l1_%01S_%01P.slm
@@ -51,6 +53,7 @@ else
 fi
 
 # partition L2 binaries for RTL simulation
+echo -e "Partitioning L2 binaries\n"
 if [ -f "$app_path/${app_name}_l2.slm" ]; then
     $slm_conv --swap-endianness -f "$app_path/${app_name}_l2.slm" \
     -w 32 -P 4 -S 8 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
