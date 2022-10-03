@@ -42,6 +42,7 @@ module cluster_interconnect_wrap
 (
   input logic                          clk_i,
   input logic                          rst_ni,
+  input logic [5:0]                    cluster_id_i,
   XBAR_TCDM_BUS.Slave                  core_tcdm_slave[NB_CORES+NB_HWACC_PORTS-1:0],
   input logic [NB_CORES-1:0][5:0]      core_tcdm_slave_atop,
   XBAR_PERIPH_BUS.Slave                core_periph_slave[NB_CORES-1:0],
@@ -356,19 +357,49 @@ module cluster_interconnect_wrap
   /* Routing of peripheral signals */
   localparam pe_idx_t PE_IDX_EXT = pulp_cluster_package::SPER_EXT_ID;
   localparam PE_HWPE_REF_PORT = pulp_cluster_package::SPER_EXT_ID + 1;
-  function automatic pe_idx_t addr_to_pe_idx(input pe_addr_t addr, input logic [31:0] addrext);
+
+  function automatic pe_idx_t addr_to_pe_idx(input pe_addr_t addr, input logic [31:0] addrext, input logic is_local_periph_req);
     
     // Signals to calculate peripheral index
     pe_addr_t r_addr;
     pe_addr_t r_addr_shrink;
     logic r_addr_hwpe_ext;
 
+    logic [11:0]  cluster_start_addr;
+    logic [11:0]  cluster_end_addr;
+
+    logic [11:0]  cluster_max_addr;
+    logic [11:0]  cluster_min_addr;
+
+    cluster_start_addr = 12'h100 + cluster_id_i * 12'h004; // keep aligned with clusters address mapping defined in SoC bus
+    cluster_end_addr   = 12'h104 + cluster_id_i * 12'h004; // keep aligned with clusters address mapping defined in SoC bus
+
+    cluster_min_addr = 12'h100; // keep aligned with address mapping defined in SoC bus
+    cluster_max_addr = 12'h1A0; // keep aligned with address mapping defined in SoC bus
+
+    /* Access external SoC bus through TRIX mechanism */
+
     if (ADDREXT && addrext != '0) begin
       return PE_IDX_EXT;
     end else begin
+
+      /* Access to another cluster peripherals */
+
       if (
-        // if the access is to this cluster ..
-        (addr[31:24] == 8'h10 || (CLUSTER_ALIAS && addr[31:24] == CLUSTER_ALIAS_BASE[11:4]))
+        // if the access is to another cluster ..
+        is_local_periph_req && ((addr[31:20] < cluster_start_addr) || (addr[31:20] >= cluster_end_addr)) && (addr[31:20] >= cluster_min_addr) && (addr[31:20] < cluster_max_addr)
+        // .. and the peripherals
+        && (addr[23:20] >= 4'h2 && addr[23:20] <= 4'h3)
+      ) begin
+        // decode peripheral to access
+        return PE_IDX_EXT;
+      end
+
+      /* Access to local cluster peripherals */
+
+      else if (
+        // if the access is to this cluster (either from this or another cluster) ..
+        (addr[31:24] == 8'h10 || (CLUSTER_ALIAS && addr[31:24] == CLUSTER_ALIAS_BASE[11:4]) || (!is_local_periph_req))
         // .. and the peripherals
         && (addr[23:20] >= 4'h2 && addr[23:20] <= 4'h3)
       ) begin
@@ -389,8 +420,11 @@ module cluster_interconnect_wrap
           r_addr_hwpe_ext = '0;
           return r_addr;
         end
+      end
 
-      end else begin
+      /* Access external SoC bus */
+
+      else begin
         // otherwise decode to 'external' peripheral
         return PE_IDX_EXT;
       end
@@ -399,7 +433,7 @@ module cluster_interconnect_wrap
 
   for (genvar i = 0; i < NB_CORES; i++) begin : gen_pe_xbar_bind_cores
     assign pe_inp_req[i] = core_periph_slave[i].req;
-    assign pe_inp_idx[i] = addr_to_pe_idx(core_periph_slave[i].add, core_periph_slave_addrext[i]);
+    assign pe_inp_idx[i] = addr_to_pe_idx(core_periph_slave[i].add, core_periph_slave_addrext[i], '1);
     assign pe_inp_wdata[i].addr = core_periph_slave[i].add;
     assign pe_inp_wdata[i].data = core_periph_slave[i].wdata;
     assign pe_inp_wdata[i].id   = 1 << i;
@@ -414,7 +448,7 @@ module cluster_interconnect_wrap
   end
   for (genvar i = 0; i < NB_MPERIPHS; i++) begin : gen_pe_xbar_bind_mperiphs
     assign pe_inp_req[i+NB_CORES] = mperiph_slave[i].req;
-    assign pe_inp_idx[i+NB_CORES] = addr_to_pe_idx(mperiph_slave[i].add, '0);
+    assign pe_inp_idx[i+NB_CORES] = addr_to_pe_idx(mperiph_slave[i].add, '0, '0);
     assign pe_inp_wdata[i+NB_CORES].addr  = mperiph_slave[i].add;
     assign pe_inp_wdata[i+NB_CORES].data  = mperiph_slave[i].wdata;
     assign pe_inp_wdata[i+NB_CORES].id    = 1 << (i + NB_CORES);

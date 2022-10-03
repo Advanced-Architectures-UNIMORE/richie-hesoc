@@ -747,6 +747,7 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
   ) cluster_interconnect_wrap_i (
     .clk_i                  ( clk_cluster                         ),
     .rst_ni                 ( rst_ni                              ),
+    .cluster_id_i           ( cluster_id_i                        ),
     .core_tcdm_slave        ( s_core_xbar_bus                     ),
     .core_tcdm_slave_atop   ( s_core_xbar_bus_atop                ),
     .core_periph_slave      ( s_core_periph_tryx                  ),
