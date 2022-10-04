@@ -12,81 +12,82 @@
 
 ROOT 					:= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-ARCHEX_PATH 			:= $(realpath ${ROOT}/archex )
-FPGA_PATH 				:= $(realpath ${ROOT}/fpga )
-SRC_PATH 				:= $(realpath ${ROOT}/ov_cfg )
-TEST_PATH 				:= $(realpath ${ROOT}/test )
-VSIM_PATH 				:= $(realpath ${ROOT}/vsim )
+ARCHEX_PATH 			:= $(realpath $(ROOT)/archex )
+DEPS_PATH 				:= $(realpath $(ROOT)/deps )
+FPGA_PATH 				:= $(realpath $(ROOT)/fpga )
+GENOV_PATH 				:= $(realpath $(ROOT)/genov )
+SRC_PATH 				:= $(realpath $(ROOT)/ov_cfg )
+VSIM_PATH 				:= $(realpath $(ROOT)/vsim )
 
-# =====================================================================
-# Description:  Choose a target overlay configuration to be generated.
-# =====================================================================
+BENDER 					= $(ROOT)/bender
+BENDER_PKG				= $(SRC_PATH)/$(TARGET_OV)/Bender.yml
+BENDER_LOCK				= $(SRC_PATH)/$(TARGET_OV)/Bender.lock
 
 TARGET_OV               := agile_1cl_16tg
 TARGET_BOARD            := zcu102
 
-GENOV 					= ${ROOT}/../genov
+VSIM_SW_PATH			:= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
 
-BENDER 					= ${ROOT}/bender
-BENDER_PKG				= ${SRC_PATH}/${TARGET_OV}/Bender.yml
-BENDER_LOCK				= ${SRC_PATH}/${TARGET_OV}/Bender.lock
+# Export variables to the environment. This is enables access by different 
+# components (other Mk, scripts, TBs, etc.) that are invoked by this flow.
+export TARGET_OV TARGET_BOARD VSIM_SW_PATH SRC_PATH
 
 .PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim fpga
 
 # =====================================================================
-# Description:  Export reports for DSE.
+# Description:  Export reports for DSE
 # =====================================================================
 
 reports_export:
-	cd ${ARCHEX_PATH} && make -s get_reports REPORT_PATH=${FPGA_PATH}/build/${TARGET_OV}/reports REPORT_TARGET=${TARGET_OV}
+	cd $(ARCHEX_PATH) && $(MAKE) -s get_reports REPORT_PATH=$(FPGA_PATH)/build/$(TARGET_OV)/reports REPORT_TARGET=$(TARGET_OV)
 
 # =====================================================================
-# Description:  FPGA build.
+# Description:  FPGA build flow.
 # =====================================================================
 fpga: build_fpga reports_fpga
 
 fpga-date-22: build_fpga_date_22 reports_fpga
 
 reports_fpga:
-	cd ${FPGA_PATH} && make -s $@ BUILD_TARGET=${TARGET_OV} BOARD_TARGET=${TARGET_BOARD}
+	cd $(FPGA_PATH) && $(MAKE) -s $@ BUILD_TARGET=$(TARGET_OV) BOARD_TARGET=$(TARGET_BOARD)
 
 reports_ls:
-	ls ${FPGA_PATH}/build/${TARGET_OV}/reports
+	ls $(FPGA_PATH)/build/$(TARGET_OV)/reports
 
-build_fpga_date_22: bender ${BENDER_PKG} ${BENDER_LOCK}
-	cd ${FPGA_PATH} && make -s $@ BUILD_TARGET=${TARGET_OV} BOARD_TARGET=${TARGET_BOARD}
+build_fpga_date_22: bender $(BENDER_PKG) $(BENDER_LOCK)
+	cd $(FPGA_PATH) && $(MAKE) -s $@ BUILD_TARGET=$(TARGET_OV) BOARD_TARGET=$(TARGET_BOARD)
 
-build_fpga: bender ${BENDER_PKG} ${BENDER_LOCK}
-	cd ${FPGA_PATH} && make -s $@ BUILD_TARGET=${TARGET_OV} BOARD_TARGET=${TARGET_BOARD}
+build_fpga: bender $(BENDER_PKG) $(BENDER_LOCK)
+	cd $(FPGA_PATH) && $(MAKE) -s $@ BUILD_TARGET=$(TARGET_OV) BOARD_TARGET=$(TARGET_BOARD)
 	
 # =====================================================================
-# Description:  Validation test using QuestaSim.
+# Description:  RTL simulation flow
 # =====================================================================
 
 VLOG_ARGS += -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233
 
-vsim: vsim_clean vsim_script
-	cd ${VSIM_PATH} && make -s all SRC_PATH=${SRC_PATH} TARGET_OV=${TARGET_OV}
+vsim: build_hw.tcl
+	cd $(VSIM_PATH) && $(MAKE) -s all
 
-vsim_script: bender ${BENDER_PKG} ${BENDER_LOCK}
-	echo 'set ROOT [file normalize [file dirname [info script]]/..]' > ${VSIM_PATH}/compile.tcl
-	${BENDER} script vsim \
+build_hw.tcl: bender $(BENDER_PKG) $(BENDER_LOCK)
+	echo 'set ROOT $(ROOT)' > $(VSIM_PATH)/$@
+	$(BENDER) script vsim \
 		--vlog-arg="$(VLOG_ARGS)" \
 		-t rtl -t test \
-		| grep -v "set ROOT" >> ${VSIM_PATH}/compile.tcl
+		| grep -v "set ROOT" >> $(VSIM_PATH)/$@
 
 vsim_clean:
-	cd ${VSIM_PATH} && make -s clean
+	cd $(VSIM_PATH) && $(MAKE) -s clean
 
 # =====================================================================
-# Description:  Setup source management tool.
+# Description:  Setup source management tool
 # =====================================================================
 
 $(BENDER_PKG):
-	cp $@ ${ROOT}
+	cp $@ $(ROOT)
 
 $(BENDER_LOCK): 
-	cp $@ ${ROOT}
+	cp $@ $(ROOT)
 
 # morty: Makefile
 # 	wget https://github.com/zarubaf/morty/releases/download/v0.6.0/morty-centos.7-x86_64.tar.gz
@@ -96,6 +97,10 @@ $(BENDER_LOCK):
 bender: Makefile
 	curl --proto '=https' --tlsv1.2 -sSf https://fabianschuiki.github.io/bender/init | sh -s 0.21.0
 	touch $@
+
+# =====================================================================
+# Recipes:		Utils
+# ===================================================================== 
 
 clean:
 	@rm -rf .bender

@@ -1,5 +1,6 @@
 # =====================================================================
-# Title:        compile.sh
+# Title:        build_hw.sh
+# Description:  Compile automatically generated TCL list of RTL designs.
 #
 # $Date:        18.1.2022
 # =====================================================================
@@ -21,6 +22,4 @@ if [ -z "$VSIM" ]; then
 fi
 readonly VSIM
 
-# make -C .. vsim/compile.tcl
-
-${VSIM} -c -do 'source compile.tcl; quit'
+${VSIM} -c -do 'source build_hw.tcl; quit'

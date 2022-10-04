@@ -1,5 +1,6 @@
 # =====================================================================
 # Title:        run.tcl
+# Description:  Run simulation.
 #
 # $Date:        18.1.2022
 # =====================================================================
@@ -16,10 +17,6 @@ set src_path $env(SRC_PATH)
 # overlay configuration
 set target_ov $env(TARGET_OV)
 
-echo ""
-echo "\[tcl\] >> Starting simulation of overlay configuration <$target_ov>"
-echo ""
-
 vsim -voptargs="+acc" -t 1ps -warning 3009 overlay_tb
 set StdArithNoWarnings 1
 set NumericStdNoWarnings 1
@@ -35,7 +32,7 @@ if { ! [batch_mode] } {
     }
 }
 
-onfinish stop
+# onfinish stop
 run -a
 
 # Set `quitCode` variable (to be used for the exit code) to `1` if the simulation terminated in an

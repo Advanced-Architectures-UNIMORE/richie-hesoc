@@ -1,5 +1,6 @@
 # =====================================================================
 # Title:        start_sim.sh
+# Description:  Run simulation.
 #
 # $Date:        18.1.2022
 # =====================================================================
@@ -20,36 +21,33 @@ error_exit()
   exit 1
 }
 
-readonly target_ov="$1"
-readonly vsim_gui="$2"
-
 # UNIMORE setup
 if [ $UNIMORE -eq 1 ]; then
-    if [ $vsim_gui -eq 1 ]; then
+    if [ $VSIM_GUI -eq 1 ]; then
         # Run in GUI mode and silence console output.
-        echo "UNIMORE setup - GUI mode"
+        echo -e "[sh] UNIMORE setup - GUI mode"
         sleep 1s
-        vsim -do 'source run.tcl' &>/dev/null
+        vsim -do "source $VSIM_UTILS/run.tcl" &>/dev/null
     else
         # Run in console-only mode.
-        echo "UNIMORE setup - Console-only mode"
+        echo -e "[sh] UNIMORE setup - Console-only mode"
         sleep 1s
-        vsim -c -do 'source run.tcl; quit -code $quitCode'
+        vsim -c -do "source $VSIM_UTILS/run.tcl; quit -code $quitCode"
     fi
 elif [ $IIS -eq 1 ]; then
-    if [ $vsim_gui -eq 1 ]; then
+    if [ $VSIM_GUI -eq 1 ]; then
         # Run in GUI mode and silence console output.
-        echo "IIS setup - GUI mode"
+        echo -e "[sh] IIS setup - GUI mode"
         sleep 1s
-        vsim-10.7b -do 'source run.tcl' &>/dev/null
+        vsim-10.7b -do "source $VSIM_UTILS/run.tcl" &>/dev/null
     else
         # Run in console-only mode.
-        echo "IIS setup - Console-only mode"
+        echo -e "[sh] IIS setup - Console-only mode"
         sleep 1s
-        vsim-10.7b -c -do 'source run.tcl; quit -code $quitCode'
+        vsim-10.7b -c -do "source $VSIM_UTILS/run.tcl; quit -code $quitCode"
     fi
 else
     # Run in GUI mode and silence console output.
-    echo "Standard setup - GUI mode"
-    vsim -do 'source run.tcl' &>/dev/null
+    echo -e "[sh] Standard setup - GUI mode"
+    vsim -do "source $VSIM_UTILS/run.tcl" &>/dev/null
 fi

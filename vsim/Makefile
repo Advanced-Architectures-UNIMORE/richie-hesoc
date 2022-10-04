@@ -1,5 +1,5 @@
 # =====================================================================
-# Title:        vsim.mk
+# Title:        RTL simulation environment
 #
 # $Date:        18.1.2022
 # =====================================================================
@@ -10,68 +10,68 @@
 #
 # =====================================================================
 
-ROOT 					:= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+ROOT 				= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-TEST_PATH 				:= $(realpath ${ROOT}/../test )
-SLM_FILES 				:= $(TEST_PATH)/slm_files
+VSIM_BUILD_DIR 		= $(ROOT)/runs
+VSIM_UTILS			= $(ROOT)/utils
 
-# =====================================================================
-# Description:  Application test.
-# =====================================================================
+VSIM_SW_TARGET 		:= $(shell basename $(VSIM_SW_PATH))
+VSIM_PRJ_TARGET		:= $(VSIM_BUILD_DIR)/$(TARGET_OV)_$(VSIM_SW_TARGET)
+VSIM_SLM_FILES		:= $(VSIM_PRJ_TARGET)/slm_files
 
-TEST_APP_CURRENT := $(realpath ${SRC_PATH}/${TARGET_OV}/test/sw )
+VSIM_GUI 			?= 0
 
-# ----------------------------------------------------------------------------------------------------- #
-# ETHZ
+export
 
-# TCDM model ~ Performance model
-PAPER_TCDM_HOM := $(realpath ${ESWEEK_DIR}/sw/experiments/tcdm_model/performance_model/hom_exec/ )
-PAPER_TCDM_HET := $(realpath ${ESWEEK_DIR}/sw/experiments/tcdm_model/performance_model/het_exec/ )
-PAPER_TCDM_WORST := $(realpath ${ESWEEK_DIR}/sw/experiments/tcdm_model/performance_model/worst_case/ )
-
-# TCDM model ~ Performance scaling
-PAPER_TCDM_SCALING := $(realpath ${ESWEEK_DIR}/sw/experiments/tcdm_model/performance_scaling/ )
-
-# System model ~ Performance model
-PAPER_SYSTEM_MULTI_CL := $(realpath ${ESWEEK_DIR}/sw/experiments/system_model/multi_cl_scaling/hello-multi-cl/ )
-
-# System model ~ Performance scaling
-PAPER_SYSTEM_DMA_SHARE := $(realpath ${ESWEEK_DIR}/sw/experiments/system_model/dma_sharing/ )
-# ----------------------------------------------------------------------------------------------------- #
-# UNISS
-
-# AES-128
-C4D_AES := $(realpath ${ESWEEK_DIR}/sw/experiments/tcdm_model/performance_model/hom_exec/ )
-# ----------------------------------------------------------------------------------------------------- #
-TEST_APP_ASAP_NCL2 := $(realpath ${SRC_PATH}/asap_test_traffic/test/sw )
-TEST_APP_MDC_6WR := $(realpath ${SRC_PATH}/ov_mdc_lic6wr/test/sw )
-TEST_HERO := $(realpath ${HERO_OV_OPENMP_TESTS}/helloworld)
-
-TEST_APP := ${TEST_HERO}
+all: check_exist clean create_env build_hw build_sw start_sim save_results
 
 # =====================================================================
-# Description:  QuestaSim GUI.
+# Recipes:		Start simulation
 # =====================================================================
 
-GUI := 1
-
-all: compile gen_slm_files start_sim
+save_results:
+	@mkdir -p $(VSIM_PRJ_TARGET)/results
+	@mv $(VSIM_PRJ_TARGET)/transcript $(VSIM_PRJ_TARGET)/results/$(TARGET_OV)_$(VSIM_SW_TARGET).txt
 
 start_sim: 
-	@echo -e '>> Start simulation.'
-	@./$@.sh ${TARGET_OV} ${GUI}
-	
-gen_slm_files:
-	@echo -e '>> Searching for software test in $(TEST_APP).'
-	@$(TEST_PATH)/$@.sh $(TEST_APP) $(SLM_FILES)
+	@echo "[sh] >> Start simulation"
+	@export VSIM_PRJ_TARGET="$(VSIM_PRJ_TARGET)"
+	@cd $(VSIM_PRJ_TARGET) && $(VSIM_UTILS)/$@.sh $(VSIM_PRJ_TARGET) $(VSIM_GUI)
 
-compile:
-	@echo -e '>> Compiling RTL.'
-	@./$@.sh
+# =====================================================================
+# Recipes:		Retrieve software binaries
+# =====================================================================
+
+build_sw:
+	@echo -e "[sh] >> Partition of SW binaries and generation of SLM files"
+	@mkdir -p $(VSIM_SLM_FILES)
+	@echo -e "[sh] >> Searching for <$(VSIM_SW_TARGET)> binaries under $(VSIM_SW_PATH)"
+	@$(VSIM_UTILS)/$@.sh
+
+# =====================================================================
+# Recipes:		Build hardware
+# =====================================================================
+
+build_hw:
+	@echo "[sh] >> Compiling RTL"
+	@mv ${ROOT}/$@.tcl $(VSIM_PRJ_TARGET)
+	@cd $(VSIM_PRJ_TARGET) && $(VSIM_UTILS)/$@.sh
+
+# =====================================================================
+# Recipes:		Create simulation environment
+# =====================================================================
+
+create_env:
+	@echo "[sh] >> Create simulation environment for project -> $(TARGET_OV)_$(VSIM_SW_TARGET)"
+	@mkdir -p $(VSIM_PRJ_TARGET)
+
+# =====================================================================
+# Recipes:		Utils for simulation environment
+# ===================================================================== 
+
+check_exist:
+	@if [ -d "$(VSIM_PRJ_TARGET)" ]; then (echo "A project for target <$(TARGET_OV)_$(VSIM_SW_TARGET)> already exists."; exit 1) ; fi
 
 clean:
-	@rm -rf work
-	@rm -f $(SLM_FILES)/*
-	@rm -f compile.tcl vsim.wlf modelsim.ini transcript vivado* *.log *.bak
-	@rm -rf work modelsim_libs
-
+	@rm -rf $(VSIM_PRJ_TARGET)
+	@rm -f build_hw.tcl
