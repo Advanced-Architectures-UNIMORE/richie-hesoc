@@ -59,7 +59,8 @@ build_fpga_date_22: bender $(BENDER_PKG) $(BENDER_LOCK)
 
 build_fpga: bender $(BENDER_PKG) $(BENDER_LOCK)
 	cd $(FPGA_PATH) && $(MAKE) -s $@ BUILD_TARGET=$(TARGET_OV) BOARD_TARGET=$(TARGET_BOARD)
-	
+
+test: bender $(BENDER_PKG) $(BENDER_LOCK)
 # =====================================================================
 # Description:  RTL simulation flow
 # =====================================================================
@@ -106,4 +107,3 @@ clean:
 	@rm -rf .bender
 	@rm -rf Bender.yml
 	@rm -rf Bender.lock
-	@rm -rf vsim/compile.tcl

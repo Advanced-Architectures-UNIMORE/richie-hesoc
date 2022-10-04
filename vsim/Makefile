@@ -12,8 +12,8 @@
 
 ROOT 				= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-VSIM_BUILD_DIR 		= $(ROOT)/runs
-VSIM_UTILS			= $(ROOT)/utils
+VSIM_BUILD_DIR 		:= $(ROOT)/runs
+VSIM_UTILS			:= $(ROOT)/utils
 
 VSIM_SW_TARGET 		:= $(shell basename $(VSIM_SW_PATH))
 VSIM_PRJ_TARGET		:= $(VSIM_BUILD_DIR)/$(TARGET_OV)_$(VSIM_SW_TARGET)
@@ -23,7 +23,7 @@ VSIM_GUI 			?= 0
 
 export
 
-all: check_exist clean create_env build_hw build_sw start_sim save_results
+all: check_exist create_env build_hw build_sw start_sim save_results
 
 # =====================================================================
 # Recipes:		Start simulation
