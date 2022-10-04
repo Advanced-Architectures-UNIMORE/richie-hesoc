@@ -18,23 +18,20 @@
 # Variables
 # =====================================================================
 
-ROOT := $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+ROOT 					= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-BUILD_TARGET 	?= ov_empty
-BUILD_DIR 		:= $(ROOT)/build
+FPGA_BUILD_DIR 			:= $(ROOT)/build
 
-BOARD_TARGET 	?= zcu102
+FPGA_UTILS_HERO 		:= $(ROOT)/utils/hero
+FPGA_UTILS_VIVADO 		:= $(ROOT)/utils/vivado_ips
+FPGA_UTILS_POWER 		:= $(ROOT)/utils/power
+FPGA_UTILS_AREA 		:= $(ROOT)/utils/area
 
-UTILS_HERO 		:= $(ROOT)/utils/hero
-UTILS_VIVADO 	:= $(ROOT)/utils/vivado_ips
-UTILS_POWER 	:= $(ROOT)/utils/power
-UTILS_AREA 		:= $(ROOT)/utils/area
-
-BENDER 			:= $(ROOT)/../bender script vivado
-BENDER_FILES 	:= $(ROOT)/../bender $(ROOT)/../Bender.yml $(ROOT)/../Bender.lock
+BENDER 					= $(ROOT)/../bender script vivado
+BENDER_FILES 			= $(ROOT)/../bender $(ROOT)/../Bender.yml $(ROOT)/../Bender.lock
 
 ifeq ($(VIVADO),)
-VIVADO := vitis-2019.2 vivado
+VIVADO 			:= vitis-2019.2 vivado
 endif
 VIVADO_OPT 		:=-mode batch
 
@@ -51,73 +48,76 @@ reports_fpga: report_area
 
 report_area:
 	@$(VIVADO) $(VIVADO_OPT) \
-		-source $(UTILS_AREA)/$@.tcl \
-		-tclargs $(BUILD_TARGET) $(BOARD_TARGET) $(BUILD_DIR) $(UTILS_AREA)
+		-source $(FPGA_UTILS_AREA)/$@.tcl \
+		-tclargs $(TARGET_OV) $(TARGET_BOARD) $(FPGA_BUILD_DIR) $(FPGA_UTILS_AREA)
 
 report_power: clean_power
 	@$(VIVADO) $(VIVADO_OPT) \
-		-source $(UTILS_POWER)/$@.tcl \
-		-tclargs $(BUILD_TARGET) $(BOARD_TARGET) $(BUILD_DIR) $(UTILS_POWER)
+		-source $(FPGA_UTILS_POWER)/$@.tcl \
+		-tclargs $(TARGET_OV) $(TARGET_BOARD) $(FPGA_BUILD_DIR) $(FPGA_UTILS_POWER)
 
 # =====================================================================
 # Recipes:		FPGA project
 # =====================================================================
 
 open_design:
-	@$(VIVADO) $(BUILD_DIR)/$(BUILD_TARGET)/vivado_prj/hero_exil$(BOARD_TARGET).xpr
+	@$(VIVADO) $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj/hero_exil$(TARGET_BOARD).xpr
 
 build_fpga: build_target
 
 build_fpga_date_22: check_exist clean_fpga build_pulp
 	@$(VIVADO) $(VIVADO_OPT) \
-		-source $(UTILS_HERO)/$(BOARD_TARGET)/date_22_zcu102.tcl \
-		-tclargs $(BUILD_DIR)/$(BUILD_TARGET)/vivado_prj $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips
+		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/date_22_zcu102.tcl \
+		-tclargs $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips
 
 fpga_output:
-	@$(VIVADO) $(VIVADO_OPT) -source $(UTILS_HERO)/$(BOARD_TARGET)/hero_exil$(BOARD_TARGET)_export_hw.tcl -tclargs $(BUILD_TARGET) $(BUILD_DIR)
+	@$(VIVADO) $(VIVADO_OPT) \
+		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/hero_exil$(TARGET_BOARD)_export_hw.tcl \
+		-tclargs $(TARGET_OV) $(FPGA_BUILD_DIR)
 
 build_target: check_exist clean_fpga build_pulp
 	@$(VIVADO) $(VIVADO_OPT) \
-		-source $(UTILS_HERO)/$(BOARD_TARGET)/hero_exil$(BOARD_TARGET).tcl \
-		-tclargs $(BUILD_DIR)/$(BUILD_TARGET)/vivado_prj $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips
+		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/hero_exil$(TARGET_BOARD).tcl \
+		-tclargs $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips
 
 build_pulp: clean_pulp_fpga build_env
-	@cd $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips && $(VIVADO) $(VIVADO_OPT) -source pulp_txil*.tcl
+	@cd $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips \
+		&& $(VIVADO) $(VIVADO_OPT) -source pulp_txil*.tcl
 
 # =====================================================================
 # Recipes:		Build environment
 # =====================================================================
 
-build_env: $(BUILD_DIR)/$(BUILD_TARGET) fpga_scripts
+build_env: $(FPGA_BUILD_DIR)/$(TARGET_OV) fpga_scripts
 
 fpga_scripts: $(BENDER_FILES) $(BUILD_ENV)
-	@$(BENDER) --only-defines --only-includes > $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips/define_defines_includes.tcl
-	@$(BENDER) --only-defines --only-includes --no-simset > $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips/define_defines_includes_no_simset.tcl
-	@$(BENDER) --only-sources > $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips/define_sources.tcl
+	@$(BENDER) --only-defines --only-includes > $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips/define_defines_includes.tcl
+	@$(BENDER) --only-defines --only-includes --no-simset > $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips/define_defines_includes_no_simset.tcl
+	@$(BENDER) --only-sources > $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips/define_sources.tcl
 
-$(BUILD_DIR)/$(BUILD_TARGET):
+$(FPGA_BUILD_DIR)/$(TARGET_OV):
 	@echo "FPGA build directory -> $@"
 	@mkdir -p $@/vivado_ips
-	@cp $(UTILS_VIVADO)/$(BOARD_TARGET)/* $@/vivado_ips
-	@cp ../ov_cfg/$(BUILD_TARGET)/ip/* $@/vivado_ips
+	@cp $(FPGA_UTILS_VIVADO)/$(TARGET_BOARD)/* $@/vivado_ips
+	@cp ../ov_cfg/$(TARGET_OV)/ip/* $@/vivado_ips
 
 ../bender: ../Makefile
-	@make -C .. bender
+	@$(MAKE) -C .. bender
 
 # =====================================================================
 # Recipes:		Utils
 # ===================================================================== 
 
 check_exist:
-	@if [ -d "$(BUILD_DIR)/$(BUILD_TARGET)" ]; then (echo "A project for target <$(BUILD_TARGET)> already exists."; exit 1) ; fi
+	@if [ -d "$(FPGA_BUILD_DIR)/$(TARGET_OV)" ]; then (echo "A project for target <$(TARGET_OV)> already exists."; exit 1) ; fi
 
 clean_power:
-	@cd $(BUILD_DIR)/$(BUILD_TARGET)/vivado_prj && find . -name "*.saif" -type f -delete
+	@cd $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj && find . -name "*.saif" -type f -delete
 
 clean_fpga:
-	@rm -rf $(BUILD_DIR)/$(BUILD_TARGET)
+	@rm -rf $(FPGA_BUILD_DIR)/$(TARGET_OV)
 
 clean_pulp_fpga: check_exist
-	@rm -rf $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips/{component.xml,define_*.tcl}
-	@rm -rf $(BUILD_DIR)/$(BUILD_TARGET)/vivado_ips/{pulp_txil*,xgui}
-	@rm -f $(BUILD_DIR)/$(BUILD_TARGET)/{,vivado_ips/}vivado*.{jou,log,str}
+	@rm -rf $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips/{component.xml,define_*.tcl}
+	@rm -rf $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips/{pulp_txil*,xgui}
+	@rm -f $(FPGA_BUILD_DIR)/$(TARGET_OV)/{,vivado_ips/}vivado*.{jou,log,str}
