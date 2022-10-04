@@ -30,37 +30,39 @@ VSIM_SW_PATH			:= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
 
 # Export variables to the environment. This is enables access by different 
 # components (other Mk, scripts, TBs, etc.) that are invoked by this flow.
+
 export TARGET_OV TARGET_BOARD VSIM_SW_PATH SRC_PATH
 
-.PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim fpga
+.PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim fpga genov
 
 # =====================================================================
 # Description:  Export reports for DSE
 # =====================================================================
 
 reports_export:
-	cd $(ARCHEX_PATH) && $(MAKE) -s get_reports REPORT_PATH=$(FPGA_PATH)/build/$(TARGET_OV)/reports REPORT_TARGET=$(TARGET_OV)
+	cd $(ARCHEX_PATH) && $(MAKE) -s get_reports REPORT_PATH=$(FPGA_PATH)/build/$(TARGET_OV)/reports
 
 # =====================================================================
-# Description:  FPGA build flow.
+# Description:  FPGA build flow
 # =====================================================================
 fpga: build_fpga reports_fpga
 
 fpga-date-22: build_fpga_date_22 reports_fpga
 
 reports_fpga:
-	cd $(FPGA_PATH) && $(MAKE) -s $@ BUILD_TARGET=$(TARGET_OV) BOARD_TARGET=$(TARGET_BOARD)
+	cd $(FPGA_PATH) && $(MAKE) -s $@
 
 reports_ls:
 	ls $(FPGA_PATH)/build/$(TARGET_OV)/reports
 
 build_fpga_date_22: bender $(BENDER_PKG) $(BENDER_LOCK)
-	cd $(FPGA_PATH) && $(MAKE) -s $@ BUILD_TARGET=$(TARGET_OV) BOARD_TARGET=$(TARGET_BOARD)
+	cd $(FPGA_PATH) && $(MAKE) -s $@
 
 build_fpga: bender $(BENDER_PKG) $(BENDER_LOCK)
-	cd $(FPGA_PATH) && $(MAKE) -s $@ BUILD_TARGET=$(TARGET_OV) BOARD_TARGET=$(TARGET_BOARD)
+	cd $(FPGA_PATH) && $(MAKE) -s $@
 
 test: bender $(BENDER_PKG) $(BENDER_LOCK)
+
 # =====================================================================
 # Description:  RTL simulation flow
 # =====================================================================
@@ -79,6 +81,14 @@ build_hw.tcl: bender $(BENDER_PKG) $(BENDER_LOCK)
 
 vsim_clean:
 	cd $(VSIM_PATH) && $(MAKE) -s clean
+
+# =====================================================================
+# Description:  Generation of Accelerator-Rich Multi-Cluster Systems
+# =====================================================================
+
+genov:
+	cd $(GENOV_PATH) && $(MAKE) -s init clean all
+	@cp -rf $(GENOV_PATH)/output/$(TARGET_OV) $(SRC_PATH)
 
 # =====================================================================
 # Description:  Setup source management tool
