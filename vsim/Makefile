@@ -12,12 +12,12 @@
 
 ROOT 				= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-VSIM_BUILD_DIR 		:= $(ROOT)/runs
-VSIM_UTILS			:= $(ROOT)/utils
+VSIM_BUILD_DIR 		= $(ROOT)/runs
+VSIM_UTILS			= $(ROOT)/utils
 
-VSIM_SW_TARGET 		:= $(shell basename $(VSIM_SW_PATH))
-VSIM_PRJ_TARGET		:= $(VSIM_BUILD_DIR)/$(TARGET_OV)_$(VSIM_SW_TARGET)
-VSIM_SLM_FILES		:= $(VSIM_PRJ_TARGET)/slm_files
+VSIM_SW_TARGET 		= $(shell basename $(VSIM_SW_PATH))
+VSIM_PRJ_TARGET		= $(VSIM_BUILD_DIR)/$(TARGET_OV)_$(VSIM_SW_TARGET)
+VSIM_SLM_FILES		= $(VSIM_PRJ_TARGET)/slm_files
 
 VSIM_GUI 			?= 0
 

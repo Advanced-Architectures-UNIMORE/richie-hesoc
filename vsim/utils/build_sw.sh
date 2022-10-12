@@ -46,22 +46,29 @@ fi
 cd $VSIM_SLM_FILES
 
 # partition L1 binaries for RTL simulation
-echo -e "[sh] >> Partitioning L1 binaries"
-if [ -f "$VSIM_SW_PATH/${VSIM_SW_TARGET}_l1.slm" ]; then
-    $slm_conv --swap-endianness -f "$VSIM_SW_PATH/${VSIM_SW_TARGET}_l1.slm" \
+l1_slm_path=$(ls $VSIM_SW_PATH/*l1.slm)
+l1_slm_name=$(basename ${l1_slm_path})
+
+if [ -f $l1_slm_path ]; then
+    echo -e "[sh] >> Partitioning L1 binaries at <$l1_slm_name>"
+    $slm_conv --swap-endianness -f $l1_slm_path \
     -w 32 -P 32 -S 1 -n 2048 -s 0x10000000 -F l1_%01S_%01P.slm
 else
     error_exit "Missing L1 binaries at $VSIM_SW_PATH/. Aborting."
 fi
 
 # partition L2 binaries for RTL simulation
-echo -e "[sh] >> Partitioning L2 binaries"
-if [ -f "$VSIM_SW_PATH/${VSIM_SW_TARGET}_l2.slm" ]; then
-    $slm_conv --swap-endianness -f "$VSIM_SW_PATH/${VSIM_SW_TARGET}_l2.slm" \
-    -w 32 -P 4 -S 8 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
+l2_slm_path=$(ls $VSIM_SW_PATH/*l2.slm)
+l2_slm_name=$(basename ${l2_slm_path})
+
+if [ -f $l2_slm_path ]; then
+    echo -e "[sh] >> Partitioning L2 binaries at <$l2_slm_name>"
+    $slm_conv --swap-endianness -f $l2_slm_path \
+    -w 32 -P 4 -S 512 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
 else
     error_exit "Missing L2 binaries at $VSIM_SW_PATH/. Aborting."
 fi
 
 # local copy of disassembly file
-cp "$VSIM_SW_PATH/$VSIM_SW_TARGET.dis" "${VSIM_SW_TARGET}.dis"
+exp_dis_path=$(ls $VSIM_SW_PATH/*.dis)
+cp "$exp_dis_path" "../experiment.dis"
