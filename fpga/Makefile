@@ -65,6 +65,11 @@ open_design:
 
 build_fpga: build_target
 
+build_fpga_empty: check_exist clean_fpga
+	@$(VIVADO) $(VIVADO_OPT) \
+		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/fpga_empty.tcl \
+		-tclargs $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips
+
 build_fpga_date_22: check_exist clean_fpga build_pulp
 	@$(VIVADO) $(VIVADO_OPT) \
 		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/date_22_zcu102.tcl \

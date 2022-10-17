@@ -10,14 +10,14 @@
 #
 # =====================================================================
 
-ROOT 					:= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+ROOT 					= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-ARCHEX_PATH 			:= $(realpath $(ROOT)/archex )
-DEPS_PATH 				:= $(realpath $(ROOT)/deps )
-FPGA_PATH 				:= $(realpath $(ROOT)/fpga )
-GENOV_PATH 				:= $(realpath $(ROOT)/genov )
-SRC_PATH 				:= $(realpath $(ROOT)/ov_cfg )
-VSIM_PATH 				:= $(realpath $(ROOT)/vsim )
+ARCHEX_PATH 			= $(realpath $(ROOT)/archex )
+DEPS_PATH 				= $(realpath $(ROOT)/deps )
+FPGA_PATH 				= $(realpath $(ROOT)/fpga )
+GENOV_PATH 				= $(realpath $(ROOT)/genov )
+SRC_PATH 				= $(realpath $(ROOT)/ov_cfg )
+VSIM_PATH 				= $(realpath $(ROOT)/vsim )
 
 BENDER 					= $(ROOT)/bender
 BENDER_PKG				= $(SRC_PATH)/$(TARGET_OV)/Bender.yml
@@ -26,7 +26,7 @@ BENDER_LOCK				= $(SRC_PATH)/$(TARGET_OV)/Bender.lock
 TARGET_OV               := agile_1cl_16tg
 TARGET_BOARD            := zcu102
 
-VSIM_SW_PATH			:= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
+VSIM_SW_PATH			= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
 
 # Export variables to the environment. This is enables access by different 
 # components (other Mk, scripts, TBs, etc.) that are invoked by this flow.
@@ -54,6 +54,9 @@ reports_fpga:
 
 reports_ls:
 	ls $(FPGA_PATH)/build/$(TARGET_OV)/reports
+
+build_fpga_empty: bender $(BENDER_PKG) $(BENDER_LOCK)
+	cd $(FPGA_PATH) && $(MAKE) -s $@
 
 build_fpga_date_22: bender $(BENDER_PKG) $(BENDER_LOCK)
 	cd $(FPGA_PATH) && $(MAKE) -s $@
