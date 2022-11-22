@@ -259,7 +259,7 @@ module cluster_dma_frontend #(
             .IdWidth         ( DmaAxiIdWidth   ),
             .AxReqFifoDepth  ( AxiAxReqDepth   ),
             .TransFifoDepth  ( TfReqFifoDepth  ),
-            .BufferDepth     ( 3               ), // minimal 3 for giving full performance
+            .BufferDepth     ( 16              ), // minimal 3 for giving full performance
             .axi_req_t       ( axi_req_t       ),
             .axi_res_t       ( axi_res_t       ),
             .burst_req_t     ( burst_req_t     ),
