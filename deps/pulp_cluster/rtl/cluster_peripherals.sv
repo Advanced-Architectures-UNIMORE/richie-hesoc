@@ -234,7 +234,8 @@ module cluster_peripherals import pulp_cluster_package::*;
   mp_pf_icache_ctrl_unit #(
     .NB_CACHE_BANKS ( NB_CACHE_BANKS       ),
     .NB_CORES       ( NB_CORES             ),
-    .ID_WIDTH       ( NB_CORES+NB_MPERIPHS )
+    .ID_WIDTH       ( NB_CORES+NB_MPERIPHS ),
+    .FEATURE_STAT   ( 1'b1                 )
   ) icache_ctrl_unit_i (
     .clk_i                  ( clk_i                           ),
     .rst_ni                 ( rst_ni                          ),

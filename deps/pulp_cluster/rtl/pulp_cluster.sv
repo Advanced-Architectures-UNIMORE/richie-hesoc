@@ -19,6 +19,8 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 
+`include "pulp_cluster_0_defines.sv"
+
 module pulp_cluster import pulp_cluster_package::*; import apu_package::*; import apu_core_package::*;
 #(
   // cluster parameters
@@ -49,6 +51,7 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
   parameter int ICACHE_DATA_WIDTH               = 128,
   parameter int L2_SIZE                         = 256*1024,
   parameter bit USE_REDUCED_TAG                 = 1'b1,
+  // parameter USE_REDUCED_TAG                     = "TRUE",
 
   // core parameters
   parameter int NB_CORES                        = 8, 
@@ -995,79 +998,89 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
     .mst    (s_core_instr_bus)
   );
 
-  // Tie AWATOP, which is not driven by the instruction cache, off.
-  assign icache_axi.aw_atop = '0;
+  `ifdef PULP_CLUSTER_PRIVATE_ICACHE
 
-  /* instruction cache */
-  icache_top_mp_128_PF #(
-    .FETCH_ADDR_WIDTH ( 32                 ),
-    .FETCH_DATA_WIDTH ( 128                ),
-    .NB_CORES         ( NB_CORES           ),
-    .NB_BANKS         ( NB_CACHE_BANKS     ),
-    .NB_WAYS          ( SET_ASSOCIATIVE    ),
-    .CACHE_SIZE       ( CACHE_SIZE         ),
-    .CACHE_LINE       ( 1                  ),
-    .AXI_ID           ( AXI_ID_OUT_WIDTH   ),
-    .AXI_ADDR         ( AXI_ADDR_WIDTH     ),
-    .AXI_USER         ( AXI_USER_WIDTH     ),
-    .AXI_DATA         ( AXI_DATA_C2S_WIDTH ),
-    .USE_REDUCED_TAG  ( USE_REDUCED_TAG    ),
-    .L2_SIZE          ( L2_SIZE            )
-  ) icache_top_i (
-    .clk                    ( clk_cluster                ),
-    .rst_n                  ( s_rst_n                    ),
-    .test_en_i              ( test_mode_i                ),
-    .fetch_req_i            ( instr_req                  ),
-    .fetch_addr_i           ( instr_addr                 ),
-    .fetch_gnt_o            ( instr_gnt                  ),
-    .fetch_rvalid_o         ( instr_r_valid              ),
-    .fetch_rdata_o          ( instr_r_rdata              ),
-    .axi_master_arid_o      ( icache_axi.ar_id           ),
-    .axi_master_araddr_o    ( icache_axi.ar_addr         ),
-    .axi_master_arlen_o     ( icache_axi.ar_len          ),
-    .axi_master_arsize_o    ( icache_axi.ar_size         ),
-    .axi_master_arburst_o   ( icache_axi.ar_burst        ),
-    .axi_master_arlock_o    ( icache_axi.ar_lock         ),
-    .axi_master_arcache_o   ( icache_axi.ar_cache        ),
-    .axi_master_arprot_o    ( icache_axi.ar_prot         ),
-    .axi_master_arregion_o  ( icache_axi.ar_region       ),
-    .axi_master_aruser_o    ( icache_axi.ar_user         ),
-    .axi_master_arqos_o     ( icache_axi.ar_qos          ),
-    .axi_master_arvalid_o   ( icache_axi.ar_valid        ),
-    .axi_master_arready_i   ( icache_axi.ar_ready        ),
-    .axi_master_rid_i       ( icache_axi.r_id            ),
-    .axi_master_rdata_i     ( icache_axi.r_data          ),
-    .axi_master_rresp_i     ( icache_axi.r_resp          ),
-    .axi_master_rlast_i     ( icache_axi.r_last          ),
-    .axi_master_ruser_i     ( icache_axi.r_user          ),
-    .axi_master_rvalid_i    ( icache_axi.r_valid         ),
-    .axi_master_rready_o    ( icache_axi.r_ready         ),
-    .axi_master_awid_o      ( icache_axi.aw_id           ),
-    .axi_master_awaddr_o    ( icache_axi.aw_addr         ),
-    .axi_master_awlen_o     ( icache_axi.aw_len          ),
-    .axi_master_awsize_o    ( icache_axi.aw_size         ),
-    .axi_master_awburst_o   ( icache_axi.aw_burst        ),
-    .axi_master_awlock_o    ( icache_axi.aw_lock         ),
-    .axi_master_awcache_o   ( icache_axi.aw_cache        ),
-    .axi_master_awprot_o    ( icache_axi.aw_prot         ),
-    .axi_master_awregion_o  ( icache_axi.aw_region       ),
-    .axi_master_awuser_o    ( icache_axi.aw_user         ),
-    .axi_master_awqos_o     ( icache_axi.aw_qos          ),
-    .axi_master_awvalid_o   ( icache_axi.aw_valid        ),
-    .axi_master_awready_i   ( icache_axi.aw_ready        ),
-    .axi_master_wdata_o     ( icache_axi.w_data          ),
-    .axi_master_wstrb_o     ( icache_axi.w_strb          ),
-    .axi_master_wlast_o     ( icache_axi.w_last          ),
-    .axi_master_wuser_o     ( icache_axi.w_user          ),
-    .axi_master_wvalid_o    ( icache_axi.w_valid         ),
-    .axi_master_wready_i    ( icache_axi.w_ready         ),
-    .axi_master_bid_i       ( icache_axi.b_id            ),
-    .axi_master_bresp_i     ( icache_axi.b_resp          ),
-    .axi_master_buser_i     ( icache_axi.b_user          ),
-    .axi_master_bvalid_i    ( icache_axi.b_valid         ),
-    .axi_master_bready_o    ( icache_axi.b_ready         ),
-    .IC_ctrl_unit_slave_if  ( IC_ctrl_unit_bus           )
-  );
+  // WPI: Instantiate private cache
+
+  `else
+    `ifdef PULP_CLUSTER_MP_ICACHE
+
+      // Tie AWATOP, which is not driven by the instruction cache, off.
+      assign icache_axi.aw_atop = '0;
+
+      /* instruction cache */
+      icache_top_mp_128_PF #(
+        .FETCH_ADDR_WIDTH ( 32                 ),
+        .FETCH_DATA_WIDTH ( 128                ),
+        .NB_CORES         ( NB_CORES           ),
+        .NB_BANKS         ( NB_CACHE_BANKS     ),
+        .NB_WAYS          ( SET_ASSOCIATIVE    ),
+        .CACHE_SIZE       ( CACHE_SIZE         ),
+        .CACHE_LINE       ( 1                  ),
+        .FEATURE_STAT     ( 1'b1               ),
+        .AXI_ID           ( AXI_ID_OUT_WIDTH   ),
+        .AXI_ADDR         ( AXI_ADDR_WIDTH     ),
+        .AXI_USER         ( AXI_USER_WIDTH     ),
+        .AXI_DATA         ( AXI_DATA_C2S_WIDTH ),
+        .USE_REDUCED_TAG  ( USE_REDUCED_TAG    ),
+        .L2_SIZE          ( L2_SIZE            )
+      ) icache_top_i (
+        .clk                    ( clk_cluster                ),
+        .rst_n                  ( s_rst_n                    ),
+        .test_en_i              ( test_mode_i                ),
+        .fetch_req_i            ( instr_req                  ),
+        .fetch_addr_i           ( instr_addr                 ),
+        .fetch_gnt_o            ( instr_gnt                  ),
+        .fetch_rvalid_o         ( instr_r_valid              ),
+        .fetch_rdata_o          ( instr_r_rdata              ),
+        .axi_master_arid_o      ( icache_axi.ar_id           ),
+        .axi_master_araddr_o    ( icache_axi.ar_addr         ),
+        .axi_master_arlen_o     ( icache_axi.ar_len          ),
+        .axi_master_arsize_o    ( icache_axi.ar_size         ),
+        .axi_master_arburst_o   ( icache_axi.ar_burst        ),
+        .axi_master_arlock_o    ( icache_axi.ar_lock         ),
+        .axi_master_arcache_o   ( icache_axi.ar_cache        ),
+        .axi_master_arprot_o    ( icache_axi.ar_prot         ),
+        .axi_master_arregion_o  ( icache_axi.ar_region       ),
+        .axi_master_aruser_o    ( icache_axi.ar_user         ),
+        .axi_master_arqos_o     ( icache_axi.ar_qos          ),
+        .axi_master_arvalid_o   ( icache_axi.ar_valid        ),
+        .axi_master_arready_i   ( icache_axi.ar_ready        ),
+        .axi_master_rid_i       ( icache_axi.r_id            ),
+        .axi_master_rdata_i     ( icache_axi.r_data          ),
+        .axi_master_rresp_i     ( icache_axi.r_resp          ),
+        .axi_master_rlast_i     ( icache_axi.r_last          ),
+        .axi_master_ruser_i     ( icache_axi.r_user          ),
+        .axi_master_rvalid_i    ( icache_axi.r_valid         ),
+        .axi_master_rready_o    ( icache_axi.r_ready         ),
+        .axi_master_awid_o      ( icache_axi.aw_id           ),
+        .axi_master_awaddr_o    ( icache_axi.aw_addr         ),
+        .axi_master_awlen_o     ( icache_axi.aw_len          ),
+        .axi_master_awsize_o    ( icache_axi.aw_size         ),
+        .axi_master_awburst_o   ( icache_axi.aw_burst        ),
+        .axi_master_awlock_o    ( icache_axi.aw_lock         ),
+        .axi_master_awcache_o   ( icache_axi.aw_cache        ),
+        .axi_master_awprot_o    ( icache_axi.aw_prot         ),
+        .axi_master_awregion_o  ( icache_axi.aw_region       ),
+        .axi_master_awuser_o    ( icache_axi.aw_user         ),
+        .axi_master_awqos_o     ( icache_axi.aw_qos          ),
+        .axi_master_awvalid_o   ( icache_axi.aw_valid        ),
+        .axi_master_awready_i   ( icache_axi.aw_ready        ),
+        .axi_master_wdata_o     ( icache_axi.w_data          ),
+        .axi_master_wstrb_o     ( icache_axi.w_strb          ),
+        .axi_master_wlast_o     ( icache_axi.w_last          ),
+        .axi_master_wuser_o     ( icache_axi.w_user          ),
+        .axi_master_wvalid_o    ( icache_axi.w_valid         ),
+        .axi_master_wready_i    ( icache_axi.w_ready         ),
+        .axi_master_bid_i       ( icache_axi.b_id            ),
+        .axi_master_bresp_i     ( icache_axi.b_resp          ),
+        .axi_master_buser_i     ( icache_axi.b_user          ),
+        .axi_master_bvalid_i    ( icache_axi.b_valid         ),
+        .axi_master_bready_o    ( icache_axi.b_ready         ),
+        .IC_ctrl_unit_slave_if  ( IC_ctrl_unit_bus           )
+      );
+    `endif // Closes `ifdef MP_ICACHE
+  `endif // Closes `ifdef PRI_ICACHE
 
   /* TCDM banks */
   for (genvar i = 0; i < NB_TCDM_BANKS; i++) begin : gen_tcdm_banks

@@ -353,6 +353,8 @@ module icache_top_mp_128_PF
             .TAG_LSB              ( TAG_LSB              ), 
             .TAG_MSB              ( TAG_MSB              ),
 
+            .FEATURE_STAT         ( FEATURE_STAT         ),
+
             .AXI_ID               ( AXI_ID               ),
             .AXI_ADDR             ( AXI_ADDR             ),
             .AXI_USER             ( AXI_USER             ),
