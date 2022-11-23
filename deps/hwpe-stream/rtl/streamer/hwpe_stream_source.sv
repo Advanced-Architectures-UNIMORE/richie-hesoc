@@ -100,7 +100,7 @@ module hwpe_stream_source
   parameter int unsigned DECOUPLED           = 0,
   parameter int unsigned LATCH_FIFO          = 0,
   parameter int unsigned REALIGNABLE         = 1,
-  parameter int unsigned TRANS_CNT           = 16,
+  parameter int unsigned TRANS_CNT           = 32,
   parameter bit          IS_ADDRESSGEN_PROGR = 0
 )
 (

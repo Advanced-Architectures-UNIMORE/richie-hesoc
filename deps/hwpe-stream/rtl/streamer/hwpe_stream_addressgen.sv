@@ -140,8 +140,8 @@ module hwpe_stream_addressgen
   parameter int unsigned REALIGN_TYPE        = HWPE_STREAM_REALIGN_SOURCE,
   parameter int unsigned DECOUPLED           = 0,
   parameter int unsigned STEP                = 4,
-  parameter int unsigned TRANS_CNT           = 16,
-  parameter int unsigned CNT                 = 10, // number of bits used within the internal counter
+  parameter int unsigned TRANS_CNT           = 32,
+  parameter int unsigned CNT                 = 32, // number of bits used within the internal counter
   parameter int unsigned DELAY_FLAGS         = 0,
   parameter bit          IS_ADDRESSGEN_PROGR = 0
 )
