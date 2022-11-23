@@ -64,7 +64,7 @@ l2_slm_name=$(basename ${l2_slm_path})
 if [ -f $l2_slm_path ]; then
     echo -e "[sh] >> Partitioning L2 binaries at <$l2_slm_name>"
     $slm_conv --swap-endianness -f $l2_slm_path \
-    -w 32 -P 4 -S 1024 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
+    -w 32 -P 4 -S 8 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
 else
     error_exit "Missing L2 binaries at $VSIM_SW_PATH/. Aborting."
 fi
