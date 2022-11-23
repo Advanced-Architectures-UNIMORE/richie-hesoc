@@ -113,7 +113,7 @@ module dmac_wrap
     .DmaDataWidth      ( AXI_DATA_WIDTH  ),
     .DmaAddrWidth      ( AXI_ADDR_WIDTH  ),
     .AxiAxReqDepth     ( 2               ),
-    .TfReqFifoDepth    ( 2               ),
+    .TfReqFifoDepth    ( 16              ),
     .NumStreams        ( NUM_STREAMS     ),
     .axi_req_t         ( slv_req_t       ),
     .axi_res_t         ( slv_resp_t      )
