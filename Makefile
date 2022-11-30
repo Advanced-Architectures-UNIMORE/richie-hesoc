@@ -75,6 +75,12 @@ VLOG_ARGS += -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233
 vsim: build_hw.tcl
 	cd $(VSIM_PATH) && $(MAKE) -s all
 
+vsim_sim: build_hw.tcl
+	cd $(VSIM_PATH) && $(MAKE) -s build_sw start_sim save_results
+
+vsim_hw: build_hw.tcl
+	cd $(VSIM_PATH) && $(MAKE) -s check_exist create_env build_hw
+
 build_hw.tcl: bender $(BENDER_PKG) $(BENDER_LOCK)
 	echo 'set ROOT $(ROOT)' > $(VSIM_PATH)/$@
 	$(BENDER) script vsim \
