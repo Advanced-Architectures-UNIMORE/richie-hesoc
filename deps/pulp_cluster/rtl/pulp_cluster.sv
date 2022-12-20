@@ -651,9 +651,12 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
     .periph_master_atop_o ( /* unconnected */ ),
     .busy_o               ( s_axi2per_busy    )
   );
-
+  
+  /* Having NB_MPERIPHS = 1 It does not make sense to have a demux here, but 
+      the interconnect needs an array data type so you cannot directly give it s_mperiph_bus */
+  
   per_demux_wrap #(
-    .NB_MASTERS  (  2 ),
+    .NB_MASTERS  (  2 ), // before was set to 2, but only 1 is effectively implemented
     .ADDR_OFFSET ( 20 )
   ) per_demux_wrap_i (
     .clk_i   ( clk_cluster         ),
@@ -673,15 +676,17 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
   assign s_mperiph_demux_bus[0].r_opc     = s_mperiph_xbar_bus[NB_MPERIPHS-1].r_opc;
   assign s_mperiph_demux_bus[0].r_rdata   = s_mperiph_xbar_bus[NB_MPERIPHS-1].r_rdata;
 
-  per_demux_wrap #(
-    .NB_MASTERS  ( NB_CORES ),
-    .ADDR_OFFSET ( 15       )
-  ) debug_interconect_i (
-    .clk_i   ( clk_cluster            ),
-    .rst_ni  ( rst_ni                 ),
-    .slave   ( s_mperiph_demux_bus[1] ),
-    .masters ( s_debug_bus            )
-  );
+ /* Removed to save area as for now no macros are used to control their synthesis */
+
+  // per_demux_wrap #(
+  //   .NB_MASTERS  ( NB_CORES ),
+  //   .ADDR_OFFSET ( 15       )
+  // ) debug_interconect_i (
+  //   .clk_i   ( clk_cluster            ),
+  //   .rst_ni  ( rst_ni                 ),
+  //   .slave   ( s_mperiph_demux_bus[1] ),
+  //   .masters ( s_debug_bus            )
+  // );
 
   per2axi_wrap #(
     .NB_CORES       ( NB_CORES             ),
@@ -727,6 +732,10 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
   for (genvar i = 0; i < NB_CORES; i++) begin : gen_core_periph_slave_addrext
     assign s_core_periph_bus_addrext[i] = tryx_req[i].addrext;
   end
+
+  logic                         soc_sw_evt_valid;
+  logic [EVNT_WIDTH-1:0]        soc_sw_evt_data;
+
   cluster_interconnect_wrap #(
     .NB_CORES           ( NB_CORES                  ),
     .NB_HWACC_PORTS     ( NB_HWPE_LIC_PORTS_TOTAL   ),
@@ -746,24 +755,27 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
     .ADDREXT            ( TRYX_ADDREXT              ),
     .CLUSTER_ALIAS      ( CLUSTER_ALIAS             ),
     .CLUSTER_ALIAS_BASE ( CLUSTER_ALIAS_BASE        ),
-    .L1_AMO_PRESENT     ( L1_AMO_PRESENT            )
+    .L1_AMO_PRESENT     ( L1_AMO_PRESENT            ),
+    .EVNT_WIDTH         ( EVNT_WIDTH                )
   ) cluster_interconnect_wrap_i (
-    .clk_i                  ( clk_cluster                         ),
-    .rst_ni                 ( rst_ni                              ),
-    .cluster_id_i           ( cluster_id_i                        ),
-    .core_tcdm_slave        ( s_core_xbar_bus                     ),
-    .core_tcdm_slave_atop   ( s_core_xbar_bus_atop                ),
-    .core_periph_slave      ( s_core_periph_tryx                  ),
-    .core_periph_slave_atop ( s_core_periph_bus_atop              ),
-    .core_periph_slave_addrext ( s_core_periph_bus_addrext        ),
-    .ext_slave              ( s_ext_xbar_bus                      ),
-    .ext_slave_atop         ( s_ext_xbar_bus_atop                 ),
-    .dma_slave              ( s_dma_xbar_bus                      ),
-    .mperiph_slave          ( s_mperiph_xbar_bus[NB_MPERIPHS-1:0] ),
-    .tcdm_sram_master       ( s_tcdm_bus_sram                     ),
-    .speriph_master         ( s_xbar_speriph_bus                  ),
-    .speriph_master_atop    ( s_xbar_speriph_atop                 ),
-    .TCDM_arb_policy_i      ( s_TCDM_arb_policy                   )
+    .clk_i                      ( clk_cluster                         ),
+    .rst_ni                     ( rst_ni                              ),
+    .cluster_id_i               ( cluster_id_i                        ),
+    .core_tcdm_slave            ( s_core_xbar_bus                     ),
+    .core_tcdm_slave_atop       ( s_core_xbar_bus_atop                ),
+    .core_periph_slave          ( s_core_periph_tryx                  ),
+    .core_periph_slave_atop     ( s_core_periph_bus_atop              ),
+    .core_periph_slave_addrext  ( s_core_periph_bus_addrext        ),
+    .ext_slave                  ( s_ext_xbar_bus                      ),
+    .ext_slave_atop             ( s_ext_xbar_bus_atop                 ),
+    .dma_slave                  ( s_dma_xbar_bus                      ),
+    .mperiph_slave              ( s_mperiph_xbar_bus[NB_MPERIPHS-1:0] ),
+    .tcdm_sram_master           ( s_tcdm_bus_sram                     ),
+    .speriph_master             ( s_xbar_speriph_bus                  ),
+    .speriph_master_atop        ( s_xbar_speriph_atop                 ),
+    .TCDM_arb_policy_i          ( s_TCDM_arb_policy                   ),
+    .speriph_soc_sw_evt_valid   ( soc_sw_evt_valid                    ),
+    .speriph_soc_sw_evt_data    ( soc_sw_evt_data                     )
   );
 
   dmac_wrap #(
@@ -824,8 +836,8 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
     .dma_pe_irq_i           ( s_dma_pe_irq                                                    ),
     .pf_event_o             ( s_pf_event                                                      ),
     .soc_periph_evt_ready_o ( s_events_ready                                                  ),
-    .soc_periph_evt_valid_i ( s_events_valid                                                  ),
-    .soc_periph_evt_data_i  ( s_events_data                                                   ),
+    .soc_periph_evt_valid_i ( soc_sw_evt_valid                                                  ),
+    .soc_periph_evt_data_i  ( soc_sw_evt_data                                                   ),
     .dbg_core_halt_o        ( dbg_core_halt                                                   ),
     .dbg_core_halted_i      ( dbg_core_halted                                                 ),
     .dbg_core_resume_o      ( dbg_core_resume                                                 ),

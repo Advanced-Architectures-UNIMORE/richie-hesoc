@@ -37,7 +37,8 @@ module cluster_interconnect_wrap
   parameter ADDREXT             = 1'b0,
   parameter CLUSTER_ALIAS       = 1'b0,
   parameter CLUSTER_ALIAS_BASE  = 12'h000,
-  parameter L1_AMO_PRESENT      = 1'b0
+  parameter L1_AMO_PRESENT      = 1'b0,
+  parameter EVNT_WIDTH          = 8
 )
 (
   input logic                          clk_i,
@@ -55,7 +56,10 @@ module cluster_interconnect_wrap
   TCDM_BANK_MEM_BUS.Master             tcdm_sram_master[NB_TCDM_BANKS-1:0],
   XBAR_PERIPH_BUS.Master               speriph_master[NB_SPERIPHS-1:0],
   output logic [NB_SPERIPHS-1:0][5:0]  speriph_master_atop,
-  input logic [1:0]                    TCDM_arb_policy_i
+  input logic [1:0]                    TCDM_arb_policy_i,
+  // SoC SW-based events
+  output logic                         speriph_soc_sw_evt_valid,
+  output logic [EVNT_WIDTH-1:0]        speriph_soc_sw_evt_data
 );
 
   localparam TCDM_ID_WIDTH = NB_CORES+NB_DMAS+NB_EXT+NB_HWACC_PORTS;
@@ -359,7 +363,7 @@ module cluster_interconnect_wrap
   localparam PE_HWPE_REF_PORT = pulp_cluster_package::SPER_EXT_ID + 1;
 
   function automatic pe_idx_t addr_to_pe_idx(input pe_addr_t addr, input logic [31:0] addrext, input logic is_local_periph_req);
-    
+
     // Signals to calculate peripheral index
     pe_addr_t r_addr;
     pe_addr_t r_addr_shrink;
@@ -386,9 +390,13 @@ module cluster_interconnect_wrap
       /* Access to another cluster peripherals */
 
       if (
-        // if the access is to another cluster ..
-        is_local_periph_req && ((addr[31:20] < cluster_start_addr) || (addr[31:20] >= cluster_end_addr)) && (addr[31:20] >= cluster_min_addr) && (addr[31:20] < cluster_max_addr)
-        // .. and the peripherals
+        // if the request is issued locally ..
+        is_local_periph_req 
+        // .. and SoC address mapping is respected ..
+        && (addr[31:20] >= cluster_min_addr) && (addr[31:20] < cluster_max_addr)
+        // .. and the destination is another cluster ..
+        && ((addr[31:20] < cluster_start_addr) || (addr[31:20] >= cluster_end_addr)) 
+        // .. and its peripherals
         && (addr[23:20] >= 4'h2 && addr[23:20] <= 4'h3)
       ) begin
         // decode peripheral to access
@@ -400,7 +408,7 @@ module cluster_interconnect_wrap
       else if (
         // if the access is to this cluster (either from this or another cluster) ..
         (addr[31:24] == 8'h10 || (CLUSTER_ALIAS && addr[31:24] == CLUSTER_ALIAS_BASE[11:4]) || (!is_local_periph_req))
-        // .. and the peripherals
+        // .. and its peripherals
         && (addr[23:20] >= 4'h2 && addr[23:20] <= 4'h3)
       ) begin
         // decode peripheral to access
@@ -420,6 +428,7 @@ module cluster_interconnect_wrap
           r_addr_hwpe_ext = '0;
           return r_addr;
         end
+
       end
 
       /* Access external SoC bus */
@@ -429,6 +438,25 @@ module cluster_interconnect_wrap
         return PE_IDX_EXT;
       end
     end
+  endfunction
+
+  function automatic logic is_sw_based_soc_evt(input pe_idx_t pe_inp_idx, input logic [31:0] mperiph_addr);
+    
+    /* Generate valid if data is routed to SoC event FIFO */
+
+    if( 
+      // If the PE target is the event unit...
+      ((pe_inp_idx == pulp_cluster_package::SPER_EVENT_U_ID) || (pe_inp_idx == pulp_cluster_package::SPER_EVENT_U_ID + 1)) 
+      // ...and the SoC FIFO events
+      && (mperiph_addr == 32'h10200F00)
+    ) begin
+      return 1'b1;
+    end
+
+    else begin
+      return 1'b0;
+    end
+
   endfunction
 
   for (genvar i = 0; i < NB_CORES; i++) begin : gen_pe_xbar_bind_cores
@@ -484,6 +512,7 @@ module cluster_interconnect_wrap
 
   // Peripheral Interconnect
   logic [PE_XBAR_N_INPS-1:0][PE_XBAR_N_OUPS-1:0] pe_req, pe_gnt;
+
   // Demux requests of inputs and mux responses to inputs.
   for (genvar i = 0; i < PE_XBAR_N_INPS; i++) begin : gen_pe_xbar_inps
     stream_demux #(
@@ -518,6 +547,7 @@ module cluster_interconnect_wrap
       .oup_valid_o  (pe_inp_rvalid[i]),
       .oup_ready_i  (1'b1)
     );
+  
   end
   // Arbitrate requests to outputs.
   for (genvar i = 0; i < PE_XBAR_N_OUPS; i++) begin : gen_pe_xbar_oups
@@ -547,6 +577,12 @@ module cluster_interconnect_wrap
       .data_o   (pe_oup_wdata[i]),
       .idx_o    (/* unused */)
     );
+  end
+
+  // Capture SW-based SoC events, then route them to EU interface
+  for (genvar i = 0; i < NB_MPERIPHS; i++) begin : gen_pe_sw_based_soc_evt
+    assign speriph_soc_sw_evt_valid = is_sw_based_soc_evt(pe_inp_idx[i+NB_CORES], pe_inp_wdata[i+NB_CORES].addr);
+    assign speriph_soc_sw_evt_data  = speriph_soc_sw_evt_valid ? pe_inp_wdata[i+NB_CORES].data : '0;
   end
 
 endmodule
