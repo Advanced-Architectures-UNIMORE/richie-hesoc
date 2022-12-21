@@ -163,10 +163,11 @@ module cluster_peripherals import pulp_cluster_package::*;
   );
    
   event_unit_top #(
-    .NB_CORES     ( NB_CORES   ),
-    .NB_BARR      ( NB_CORES   ),
-    .PER_ID_WIDTH ( NB_CORES+1 ),
-    .EVNT_WIDTH   ( EVNT_WIDTH )
+    .NB_CORES         ( NB_CORES   ),
+    .NB_BARR          ( NB_CORES   ),
+    .PER_ID_WIDTH     ( NB_CORES+1 ),
+    .EVNT_WIDTH       ( EVNT_WIDTH ),
+    .SOC_FIFO_DEPTH   ( 32         )
   ) event_unit_flex_i (
     .clk_i                  ( clk_i                  ),
     .rst_ni                 ( rst_ni                 ),
