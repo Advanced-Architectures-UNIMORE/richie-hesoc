@@ -475,7 +475,15 @@ module cluster_interconnect_wrap
     assign core_periph_slave[i].r_valid = pe_inp_rvalid[i];
   end
   for (genvar i = 0; i < NB_MPERIPHS; i++) begin : gen_pe_xbar_bind_mperiphs
-    assign pe_inp_req[i+NB_CORES] = mperiph_slave[i].req;
+    // Capture SW-based SoC events, then route them to EU interface
+    // NB: In case an event is captured, the peripheral memory-mapped request is not forwarded,
+    // but routed to the streaming-based SoC event interface of the event unit. The behavior is 
+    // totally transparent to the SW. Take a look at function "is_sw_based_soc_evt" to gather more 
+    // info about the address locations that trigger this.
+    assign speriph_soc_sw_evt_valid = is_sw_based_soc_evt(pe_inp_idx[i+NB_CORES], pe_inp_wdata[i+NB_CORES].addr);
+    assign speriph_soc_sw_evt_data  = speriph_soc_sw_evt_valid ? pe_inp_wdata[i+NB_CORES].data : '0;
+    // Pilot master peripheral requests
+    assign pe_inp_req[i+NB_CORES] = speriph_soc_sw_evt_valid ? '0 : mperiph_slave[i].req;
     assign pe_inp_idx[i+NB_CORES] = addr_to_pe_idx(mperiph_slave[i].add, '0, '0);
     assign pe_inp_wdata[i+NB_CORES].addr  = mperiph_slave[i].add;
     assign pe_inp_wdata[i+NB_CORES].data  = mperiph_slave[i].wdata;
@@ -483,10 +491,10 @@ module cluster_interconnect_wrap
     assign pe_inp_wdata[i+NB_CORES].we_n  = mperiph_slave[i].wen;
     assign pe_inp_wdata[i+NB_CORES].be    = mperiph_slave[i].be;
     assign pe_inp_wdata[i+NB_CORES].atop  = '0;
-    assign mperiph_slave[i].gnt     = pe_inp_gnt[i+NB_CORES];
+    assign mperiph_slave[i].gnt     = speriph_soc_sw_evt_valid ? '1 : pe_inp_gnt[i+NB_CORES];
     assign mperiph_slave[i].r_rdata = pe_inp_rdata[i+NB_CORES].data;
     assign mperiph_slave[i].r_opc   = pe_inp_rdata[i+NB_CORES].opc;
-    assign mperiph_slave[i].r_valid = pe_inp_rvalid[i+NB_CORES];
+    assign mperiph_slave[i].r_valid = speriph_soc_sw_evt_valid ? '1 : pe_inp_rvalid[i+NB_CORES];
   end
 
   // Peripherals: Bind outputs.
@@ -577,12 +585,6 @@ module cluster_interconnect_wrap
       .data_o   (pe_oup_wdata[i]),
       .idx_o    (/* unused */)
     );
-  end
-
-  // Capture SW-based SoC events, then route them to EU interface
-  for (genvar i = 0; i < NB_MPERIPHS; i++) begin : gen_pe_sw_based_soc_evt
-    assign speriph_soc_sw_evt_valid = is_sw_based_soc_evt(pe_inp_idx[i+NB_CORES], pe_inp_wdata[i+NB_CORES].addr);
-    assign speriph_soc_sw_evt_data  = speriph_soc_sw_evt_valid ? pe_inp_wdata[i+NB_CORES].data : '0;
   end
 
 endmodule
