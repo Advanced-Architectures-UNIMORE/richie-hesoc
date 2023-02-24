@@ -32,7 +32,7 @@ all: check_exist create_env build_hw build_sw start_sim save_results
 
 save_results:
 	@mkdir -p $(VSIM_PRJ_PATH)/results
-	@mv $(VSIM_PRJ_PATH)/transcript $(VSIM_PRJ_PATH)/results/$(VSIM_PRJ_NAME).txt
+	@mv $(VSIM_PRJ_PATH)/transcript $(VSIM_PRJ_PATH)/results/$(VSIM_SW_NAME).txt
 
 start_sim: 
 	@echo "[sh] >> Start simulation"
