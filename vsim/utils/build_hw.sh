@@ -23,3 +23,6 @@ fi
 readonly VSIM
 
 ${VSIM} -c -do 'source build_hw.tcl; quit'
+
+# Copy .dat files locally to project
+find "$SRC_PATH/$TARGET_OV/wrappers/" -type f -name "*.dat" -exec cp "{}" $VSIM_PRJ_PATH \;
