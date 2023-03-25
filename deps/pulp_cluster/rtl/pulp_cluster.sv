@@ -86,6 +86,7 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
   // DMA parameters
   parameter int NB_DMAS                         = 4,
   parameter int NB_DMA_STREAMS                  = 4,
+  parameter int FIFO_DEPTH_DMA_REQ              = 2,
   parameter int NB_OUTSND_BURSTS                = 8,
 
   // peripheral and periph interconnect parameters
@@ -788,6 +789,7 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
     .DATA_WIDTH         ( DATA_WIDTH         ),
     .ADDR_WIDTH         ( ADDR_WIDTH         ),
     .BE_WIDTH           ( BE_WIDTH           ),
+    .TF_REQ_FIFO_DEPTH  ( FIFO_DEPTH_DMA_REQ ),
     .NUM_STREAMS        ( NB_DMA_STREAMS     )
   ) dmac_wrap_i (
     .clk_i          ( clk_cluster        ),
