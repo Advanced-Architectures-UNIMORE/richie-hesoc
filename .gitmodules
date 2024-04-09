@@ -1,5 +1,5 @@
 [submodule "genov"]
-	path = genov
+	path = richie-toolchain
 	url = git@iis-git.ee.ethz.ch:gianluca.bellocchi/genov.git
 [submodule "archex"]
 	path = archex

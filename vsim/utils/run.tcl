@@ -5,7 +5,7 @@
 # $Date:        18.1.2022
 # =====================================================================
 #
-# Authors: 
+# Authors:
 #   - Andreas Kurth, ETH Zurich
 #   - Gianluca Bellocchi, University of Modena and Reggio Emilia.
 #
@@ -17,10 +17,10 @@ set src_path $env(SRC_PATH)
 # overlay configuration
 set target_ov $env(TARGET_OV)
 
-vsim -voptargs="+acc" -t 1ps -warning 3009 overlay_tb
+vsim -suppress 16154 -suppress 14408 -suppress 3839 -voptargs="+acc" -t 1ps -warning 3009 overlay_tb
 set StdArithNoWarnings 1
 set NumericStdNoWarnings 1
-set BreakOnAssertion 2;# break also on assertion errors
+set BreakOnAssertion 2; # break also on assertion errors
 
 # read wave files
 if { ! [batch_mode] } {

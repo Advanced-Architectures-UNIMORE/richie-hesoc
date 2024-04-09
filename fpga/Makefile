@@ -72,6 +72,7 @@ build_fpga_empty: check_exist clean_fpga
 
 build_fpga_date_22: check_exist clean_fpga build_pulp
 	@$(VIVADO) $(VIVADO_OPT) \
+		-stack 2000 \
 		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/date_22_zcu102.tcl \
 		-tclargs $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips
 
