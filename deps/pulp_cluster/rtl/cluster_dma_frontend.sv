@@ -10,6 +10,9 @@
 //
 // Thomas Benz <tbenz@iis.ee.ethz.ch>
 
+`include "axi/typedef.svh"
+`include "idma/typedef.svh"
+
 /// replaces the mchan in the pulp cluster if the new AXI DMA should be used
 /// strictly 32 bit on the TCDM side.
 module cluster_dma_frontend #(
@@ -70,6 +73,8 @@ module cluster_dma_frontend #(
     output logic                      term_irq_pe_o
 );
 
+    import idma_pkg::*;
+
     // number of register sets in fe
     localparam int unsigned NumRegs  = NumCores + 1;
 
@@ -79,9 +84,18 @@ module cluster_dma_frontend #(
     // distributer index width
     localparam int unsigned DistrIdxWidth = (NumStreams > 32'd1) ? unsigned'($clog2(NumStreams)) : 32'd1;
 
+    // dependent parameters
+    localparam int unsigned DmaStrbWidth = DmaDataWidth / 8;
+    localparam int unsigned DmaUserWidth = 4; //soc_cfg_pkg::AXI_UW;
+
     // DMA transfer descriptor
-    typedef logic [DmaAddrWidth-1:0] addr_t;
-    typedef logic             [31:0] num_bytes_t;
+    typedef logic [DmaAddrWidth-1:0]  addr_t;
+    typedef logic [DmaDataWidth-1:0]  data_t;
+    typedef logic [DmaStrbWidth-1:0]  strb_t;
+    typedef logic [DmaUserWidth-1:0]  user_t;
+    typedef logic [DmaAxiIdWidth-1:0] id_t;
+    typedef logic [DmaAddrWidth-1:0]  tf_len_t;
+    typedef logic             [31:0]  num_bytes_t;
     typedef struct packed {
         num_bytes_t num_bytes;
         addr_t      dst_addr;
@@ -103,6 +117,13 @@ module cluster_dma_frontend #(
         logic               deburst;
         logic               serialize;
     } burst_req_t;
+
+    // AXI typedef
+    `AXI_TYPEDEF_ALL(axi_xbar, addr_t, id_t, data_t, strb_t, user_t)
+
+    // iDMA request / response types
+    `IDMA_TYPEDEF_FULL_REQ_T(idma_req_t, id_t, addr_t, tf_len_t)
+    `IDMA_TYPEDEF_FULL_RSP_T(idma_rsp_t, addr_t)
 
     burst_req_t burst_req;
 
@@ -133,6 +154,7 @@ module cluster_dma_frontend #(
     // the backend chosen
     logic [DistrIdxWidth-1:0]    be_idx_arb;
 
+    idma_pkg::idma_busy_t   idma_busy;
 
     // generate registers for cores
     for (genvar i = 0; i < NumCores; i++) begin : gen_core_regs
@@ -252,31 +274,73 @@ module cluster_dma_frontend #(
 
         logic issue;
 
-        // instantiate backend :)
-        axi_dma_backend #(
-            .DataWidth       ( DmaDataWidth    ),
-            .AddrWidth       ( DmaAddrWidth    ),
-            .IdWidth         ( DmaAxiIdWidth   ),
-            .AxReqFifoDepth  ( AxiAxReqDepth   ),
-            .TransFifoDepth  ( TfReqFifoDepth  ),
-            .BufferDepth     ( 16              ), // minimal 3 for giving full performance
-            .axi_req_t       ( axi_req_t       ),
-            .axi_res_t       ( axi_res_t       ),
-            .burst_req_t     ( burst_req_t     ),
-            .DmaIdWidth      ( 6               ),
-            .DmaTracing      ( 0               )
-        ) i_axi_dma_backend (
-            .clk_i            ( clk_i                     ),
-            .rst_ni           ( rst_ni                    ),
-            .dma_id_i         ( cluster_id_i              ),
-            .axi_dma_req_o    ( axi_dma_req_o         [i] ),
-            .axi_dma_res_i    ( axi_dma_res_i         [i] ),
-            .burst_req_i      ( burst_req                 ),
-            .valid_i          ( be_valid_stream       [i] ),
-            .ready_o          ( be_ready_stream       [i] ),
-            .backend_idle_o   ( be_idle_stream        [i] ),
-            .trans_complete_o ( trans_complete_stream [i] )
+        // // instantiate backend :)
+        // axi_dma_backend #(
+        //     .DataWidth       ( DmaDataWidth    ),
+        //     .AddrWidth       ( DmaAddrWidth    ),
+        //     .IdWidth         ( DmaAxiIdWidth   ),
+        //     .AxReqFifoDepth  ( AxiAxReqDepth   ),
+        //     .TransFifoDepth  ( TfReqFifoDepth  ),
+        //     .BufferDepth     ( 16              ), // minimal 3 for giving full performance
+        //     .axi_req_t       ( axi_req_t       ),
+        //     .axi_res_t       ( axi_res_t       ),
+        //     .burst_req_t     ( burst_req_t     ),
+        //     .DmaIdWidth      ( 6               ),
+        //     .DmaTracing      ( 0               )
+        // ) i_axi_dma_backend (
+        //     .clk_i            ( clk_i                     ),
+        //     .rst_ni           ( rst_ni                    ),
+        //     .dma_id_i         ( cluster_id_i              ),
+        //     .axi_dma_req_o    ( axi_dma_req_o         [i] ),
+        //     .axi_dma_res_i    ( axi_dma_res_i         [i] ),
+        //     .burst_req_i      ( burst_req                 ),
+        //     .valid_i          ( be_valid_stream       [i] ),
+        //     .ready_o          ( be_ready_stream       [i] ),
+        //     .backend_idle_o   ( be_idle_stream        [i] ),
+        //     .trans_complete_o ( trans_complete_stream [i] )
+        // );
+
+        idma_backend #(
+          .DataWidth           ( DmaDataWidth                   ),
+          .AddrWidth           ( DmaAddrWidth                   ),
+          .AxiIdWidth          ( DmaAxiIdWidth                  ),
+          .UserWidth           ( DmaUserWidth                   ),
+          .TFLenWidth          ( DmaAddrWidth                   ),
+          .MaskInvalidData     ( 1                              ),
+          .BufferDepth         ( 16                             ),
+          .RAWCouplingAvail    ( 1                              ),
+          .HardwareLegalizer   ( 1                              ),
+          .RejectZeroTransfers ( 1                              ),
+          .ErrorCap            ( idma_pkg::NO_ERROR_HANDLING    ),
+          .NumAxInFlight       ( AxiAxReqDepth                  ),
+          .MemSysDepth         ( 0                              ),
+          .idma_req_t          ( idma_req_t                     ),
+          .idma_rsp_t          ( idma_rsp_t                     ),
+          .idma_eh_req_t       ( idma_pkg::idma_eh_req_t        ),
+          .idma_busy_t         ( idma_pkg::idma_busy_t          ),
+          .protocol_req_t      ( axi_xbar_req_t                 ),
+          .protocol_rsp_t      ( axi_xbar_resp_t                ),
+          .aw_chan_t           ( axi_xbar_aw_chan_t             ),
+          .ar_chan_t           ( axi_xbar_ar_chan_t             )
+        ) i_idma_backend (
+          .clk_i          ( clk_i                           ),
+          .rst_ni         ( rst_ni                          ),
+          .testmode_i     ( 1'b0                            ),
+          .idma_req_i     ( idma_req                        ),
+          .req_valid_i    ( be_valid_stream       [i]       ),
+          .req_ready_o    ( be_ready_stream       [i]       ),
+          .idma_rsp_o     ( /* NOT CONNECTED */             ),
+          .rsp_valid_o    ( trans_complete_stream [i]       ),
+          .rsp_ready_i    ( 1'b1                            ),
+          .idma_eh_req_i  ( '0                              ),
+          .eh_req_valid_i ( 1'b1                            ),
+          .eh_req_ready_o ( /* NOT CONNECTED */             ),
+          .protocol_req_o ( axi_dma_req_o         [i]       ),
+          .protocol_rsp_i ( axi_dma_res_i         [i]       ),
+          .busy_o         ( idma_busy                       )
         );
+
+        assign be_idle_stream[i] = ~|idma_busy;
 
         // only increment issue counter if we have a valid transfer
         assign issue = be_ready_stream[i] & be_valid_stream[i]; /*& !zero_length;*/

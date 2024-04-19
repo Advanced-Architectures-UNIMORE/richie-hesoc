@@ -187,8 +187,10 @@ module dmac_wrap
     MaxSlvTrans:                             3,
     FallThrough:                          1'b0,
     LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+    PipelineStages:                          0,
     AxiIdWidthSlvPorts:            SlvIdxWidth,
     AxiIdUsedSlvPorts:             SlvIdxWidth,
+    UniqueIds:                               0,
     AxiAddrWidth:               AXI_ADDR_WIDTH,
     AxiDataWidth:               AXI_DATA_WIDTH,
     NoAddrRules:                      NumRules

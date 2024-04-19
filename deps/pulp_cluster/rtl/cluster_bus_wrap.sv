@@ -163,8 +163,10 @@ module cluster_bus_wrap
     MaxSlvTrans:        DMA_NB_OUTSND_BURSTS + NB_CORES,
     FallThrough:        1'b0,
     LatencyMode:        axi_pkg::CUT_ALL_AX | axi_pkg::DemuxW,
+    PipelineStages:     0,
     AxiIdWidthSlvPorts: AXI_ID_IN_WIDTH,
     AxiIdUsedSlvPorts:  AXI_ID_IN_WIDTH,
+    UniqueIds:          0,
     AxiAddrWidth:       AXI_ADDR_WIDTH,
     AxiDataWidth:       AXI_DATA_WIDTH,
     NoAddrRules:        N_RULES
