@@ -4,3 +4,6 @@
 [submodule "archex"]
 	path = archex
 	url = git@github.com:gbellocchi/ArchEx.git
+[submodule "ov_cfg/floonoc_test"]
+	path = ov_cfg/floonoc_test
+	url = git@github.com:gbellocchi/floonoc_test.git

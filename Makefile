@@ -23,12 +23,12 @@ BENDER 					= $(ROOT)/bender
 BENDER_PKG				= $(SRC_PATH)/$(TARGET_OV)/Bender.yml
 BENDER_LOCK				= $(SRC_PATH)/$(TARGET_OV)/Bender.lock
 
-TARGET_OV               := agile_1cl_16tg
+TARGET_OV               := floonoc_test
 TARGET_BOARD            := zcu102
 
 VSIM_SW_PATH			= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
 
-# Export variables to the environment. This is enables access by different 
+# Export variables to the environment. This is enables access by different
 # components (other Mk, scripts, TBs, etc.) that are invoked by this flow.
 
 export TARGET_OV TARGET_BOARD VSIM_SW_PATH SRC_PATH
@@ -106,7 +106,7 @@ genov:
 $(BENDER_PKG):
 	cp $@ $(ROOT)
 
-$(BENDER_LOCK): 
+$(BENDER_LOCK):
 	cp $@ $(ROOT)
 
 # morty: Makefile
@@ -120,7 +120,7 @@ bender: Makefile
 
 # =====================================================================
 # Recipes:		Utils
-# ===================================================================== 
+# =====================================================================
 
 clean:
 	@rm -rf .bender

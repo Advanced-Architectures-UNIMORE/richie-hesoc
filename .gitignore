@@ -5,6 +5,7 @@ Bender.lock
 Bender.local
 
 /ov_cfg/*
+!/ov_cfg/floonoc_test
 
 /component.xml
 /xgui
