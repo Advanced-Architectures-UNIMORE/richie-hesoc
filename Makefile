@@ -47,7 +47,7 @@ reports_export:
 # =====================================================================
 fpga: build_fpga reports_fpga
 
-fpga-date-22: build_fpga_date_22 reports_fpga
+fpga-dse-area: build_fpga_dse_area reports_fpga
 
 reports_fpga:
 	cd $(FPGA_PATH) && $(MAKE) -s $@
@@ -58,7 +58,7 @@ reports_ls:
 build_fpga_empty: bender $(BENDER_PKG) $(BENDER_LOCK)
 	cd $(FPGA_PATH) && $(MAKE) -s $@
 
-build_fpga_date_22: bender $(BENDER_PKG) $(BENDER_LOCK)
+build_fpga_dse_area: bender $(BENDER_PKG) $(BENDER_LOCK)
 	cd $(FPGA_PATH) && $(MAKE) -s $@
 
 build_fpga: bender $(BENDER_PKG) $(BENDER_LOCK)
@@ -106,7 +106,7 @@ genov:
 $(BENDER_PKG):
 	cp $@ $(ROOT)
 
-$(BENDER_LOCK): 
+$(BENDER_LOCK):
 	cp $@ $(ROOT)
 
 # morty: Makefile
@@ -120,7 +120,7 @@ bender: Makefile
 
 # =====================================================================
 # Recipes:		Utils
-# ===================================================================== 
+# =====================================================================
 
 clean:
 	@rm -rf .bender

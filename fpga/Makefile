@@ -70,10 +70,10 @@ build_fpga_empty: check_exist clean_fpga
 		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/fpga_empty.tcl \
 		-tclargs $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips
 
-build_fpga_date_22: check_exist clean_fpga build_pulp
+build_fpga_dse_area: check_exist clean_fpga build_pulp
 	@$(VIVADO) $(VIVADO_OPT) \
 		-stack 2000 \
-		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/date_22_zcu102.tcl \
+		-source $(FPGA_UTILS_HERO)/$(TARGET_BOARD)/dse_area_zcu102.tcl \
 		-tclargs $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_prj $(FPGA_BUILD_DIR)/$(TARGET_OV)/vivado_ips
 
 fpga_output:
@@ -112,7 +112,7 @@ $(FPGA_BUILD_DIR)/$(TARGET_OV):
 
 # =====================================================================
 # Recipes:		Utils
-# ===================================================================== 
+# =====================================================================
 
 check_exist:
 	@if [ -d "$(FPGA_BUILD_DIR)/$(TARGET_OV)" ]; then (echo "A project for target <$(TARGET_OV)> already exists."; exit 1) ; fi
