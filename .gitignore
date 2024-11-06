@@ -4,7 +4,7 @@ Bender.yml
 Bender.lock
 Bender.local
 
-/ov_cfg/*
+/src/*
 
 /component.xml
 /xgui

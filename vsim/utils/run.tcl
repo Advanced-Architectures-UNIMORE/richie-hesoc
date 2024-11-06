@@ -1,31 +1,22 @@
-# =====================================================================
-# Title:        run.tcl
-# Description:  Run simulation.
-#
-# $Date:        18.1.2022
-# =====================================================================
-#
-# Authors:
-#   - Andreas Kurth, ETH Zurich
-#   - Gianluca Bellocchi, University of Modena and Reggio Emilia.
-#
-# =====================================================================
+# Copyright 2022 ETH Zurich and University of Bologna.
+# Author: Andreas Kurth, ETH Zurich
+# Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
 # source files
 set src_path $env(SRC_PATH)
 
 # overlay configuration
-set target_ov $env(TARGET_OV)
+set target_platform $env(TARGET_PLATFORM)
 
-vsim -suppress 16154 -suppress 14408 -suppress 3839 -voptargs="+acc" -t 1ps -warning 3009 overlay_tb
+vsim -suppress 16154 -suppress 14408 -suppress 3839 -voptargs="+acc" -t 1ps -warning 3009 richie_tb
 set StdArithNoWarnings 1
 set NumericStdNoWarnings 1
 set BreakOnAssertion 2; # break also on assertion errors
 
 # read wave files
 if { ! [batch_mode] } {
-    set directory "$src_path/$target_ov/test/waves"
-    set files [glob [file join $directory *.wave.do]]
+    set directory "$src_path/$target_platform/test/waves"
+    set files [glob [file join $directory *.tcl]]
     foreach f $files {
         source $f
         echo "\t- $f"

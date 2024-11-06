@@ -1,50 +1,30 @@
-# =====================================================================
-# Title:        Makefile
-#
-# $Date:        28.12.2021
-# =====================================================================
-#
-# Copyright (C) 2021 University of Modena and Reggio Emilia.
-#
-# Author: Gianluca Bellocchi, University of Modena and Reggio Emilia.
-#
-# =====================================================================
+# Copyright 2022 University of Modena and Reggio Emilia
+# Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-ROOT 					= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+ROOT 							= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-ARCHEX_PATH 			= $(realpath $(ROOT)/archex )
 DEPS_PATH 				= $(realpath $(ROOT)/deps )
 FPGA_PATH 				= $(realpath $(ROOT)/fpga )
-GENOV_PATH 				= $(realpath $(ROOT)/genov )
-SRC_PATH 				= $(realpath $(ROOT)/ov_cfg )
+SRC_PATH 					= $(realpath $(ROOT)/src )
 VSIM_PATH 				= $(realpath $(ROOT)/vsim )
 
-BENDER 					= $(ROOT)/bender
-BENDER_PKG				= $(SRC_PATH)/$(TARGET_OV)/Bender.yml
-BENDER_LOCK				= $(SRC_PATH)/$(TARGET_OV)/Bender.lock
+BENDER 						= $(ROOT)/bender
+BENDER_PKG				= $(SRC_PATH)/$(TARGET_PLATFORM)/Bender.yml
+BENDER_LOCK				= $(SRC_PATH)/$(TARGET_PLATFORM)/Bender.lock
 
-TARGET_OV               := agile_1cl_16tg
-TARGET_BOARD            := zcu102
+VSIM_SW_PATH			:= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
 
-VSIM_SW_PATH			= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
+TARGET_PLATFORM       	:= richie_example
+TARGET_BOARD    	:= zcu102
 
-# Export variables to the environment. This is enables access by different 
-# components (other Mk, scripts, TBs, etc.) that are invoked by this flow.
-
-export TARGET_OV TARGET_BOARD VSIM_SW_PATH SRC_PATH
+export TARGET_PLATFORM TARGET_BOARD VSIM_SW_PATH SRC_PATH
 
 .PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim fpga genov
 
 # =====================================================================
-# Description:  Export reports for DSE
-# =====================================================================
-
-reports_export:
-	cd $(ARCHEX_PATH) && $(MAKE) -s get_reports REPORT_PATH=$(FPGA_PATH)/build/$(TARGET_OV)/reports
-
-# =====================================================================
 # Description:  FPGA build flow
 # =====================================================================
+
 fpga: build_fpga reports_fpga
 
 fpga-dse-area: build_fpga_dse_area reports_fpga
@@ -53,7 +33,7 @@ reports_fpga:
 	cd $(FPGA_PATH) && $(MAKE) -s $@
 
 reports_ls:
-	ls $(FPGA_PATH)/build/$(TARGET_OV)/reports
+	ls $(FPGA_PATH)/build/$(TARGET_PLATFORM)/reports
 
 build_fpga_empty: bender $(BENDER_PKG) $(BENDER_LOCK)
 	cd $(FPGA_PATH) && $(MAKE) -s $@
@@ -92,14 +72,6 @@ vsim_clean:
 	cd $(VSIM_PATH) && $(MAKE) -s clean
 
 # =====================================================================
-# Description:  Generation of Accelerator-Rich Multi-Cluster Systems
-# =====================================================================
-
-genov:
-	cd $(GENOV_PATH) && $(MAKE) -s init clean all
-	@cp -rf $(GENOV_PATH)/output/$(TARGET_OV) $(SRC_PATH)
-
-# =====================================================================
 # Description:  Setup source management tool
 # =====================================================================
 
@@ -108,11 +80,6 @@ $(BENDER_PKG):
 
 $(BENDER_LOCK):
 	cp $@ $(ROOT)
-
-# morty: Makefile
-# 	wget https://github.com/zarubaf/morty/releases/download/v0.6.0/morty-centos.7-x86_64.tar.gz
-# 	tar -xf morty-centos.7-x86_64.tar.gz $@
-# 	rm -rf morty-centos.7-x86_64.tar.gz
 
 bender: Makefile
 	curl --proto '=https' --tlsv1.2 -sSf https://fabianschuiki.github.io/bender/init | sh -s 0.21.0

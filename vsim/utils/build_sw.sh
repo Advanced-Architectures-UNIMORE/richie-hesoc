@@ -10,7 +10,6 @@
 #
 # Authors: 
 #   - Andreas Kurth, ETH Zurich
-#   - Gianluca Bellocchi, University of Modena and Reggio Emilia.
 #
 # =====================================================================
 
@@ -52,8 +51,7 @@ l1_slm_name=$(basename ${l1_slm_path})
 if [ -f $l1_slm_path ]; then
     echo -e "[sh] >> Partitioning L1 binaries at <$l1_slm_name>"
     $slm_conv --swap-endianness -f $l1_slm_path \
-    -w 32 -P 4 -S 1 -n 8192 -s 0x10000000 -F l1_%01S_%01P.slm
-    # -w 32 -P 16 -S 1 -n 2048 -s 0x10000000 -F l1_%01S_%01P.slm
+    -w 32 -P 16 -S 1 -n 2048 -s 0x10000000 -F l1_%01S_%01P.slm
         # NB:
         # -P --> Equal to n_l1_banks
         # -S --> Kept at 1
@@ -69,8 +67,7 @@ l2_slm_name=$(basename ${l2_slm_path})
 if [ -f $l2_slm_path ]; then
     echo -e "[sh] >> Partitioning L2 binaries at <$l2_slm_name>"
     $slm_conv --swap-endianness -f $l2_slm_path \
-    -w 32 -P 4 -S 32 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
-    # -w 32 -P 4 -S 8 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
+    -w 32 -P 4 -S 128 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
         # NB:
         # -P --> Equal to N_SER_CUTS (see l2_mem.sv)
         # -S --> Equal to N_PAR_CUTS (see l2_mem.sv)
