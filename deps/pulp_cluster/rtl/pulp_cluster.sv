@@ -19,7 +19,7 @@
 `include "axi/assign.svh"
 `include "axi/typedef.svh"
 
-`include "pulp_cluster_0_defines.sv"
+`include "cluster/pulp_cluster_0_defines.svh"
 
 module pulp_cluster import pulp_cluster_package::*; import apu_package::*; import apu_core_package::*;
 #(
@@ -29,7 +29,7 @@ module pulp_cluster import pulp_cluster_package::*; import apu_package::*; impor
   parameter bit CLUSTER_ALIAS                   = 1'b1,
   parameter int CLUSTER_ALIAS_BASE              = 12'h1B0,
 
-  // HWPE wrappers 
+  // HWPE-based accelerator interfaces 
   // - LIC interconnect
   parameter int NB_HWPE_LIC                     = 0,
   parameter int NB_HWPE_LIC_PORTS_TOTAL         = 0,
