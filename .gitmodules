@@ -1,0 +1,3 @@
+[submodule "accelerators/deps/Vitis_Libraries"]
+	path = accelerators/deps/Vitis_Libraries
+	url = git@github.com:mariodruiz/Vitis_Libraries.git
