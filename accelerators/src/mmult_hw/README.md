@@ -1,7 +1,7 @@
-# 2D convolution
+# Matrix multiplication (baseline)
 
 ## About this accelerator
-2D convolution, from the Vivado HLS examples. 
+Matrix multiplication accelerator without HLS optimizations. 
 
 ## About this repository
 The structure of the repository is as follows:

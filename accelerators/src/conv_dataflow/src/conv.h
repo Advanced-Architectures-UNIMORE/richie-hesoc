@@ -35,7 +35,7 @@ void filter11x11_orig(
         int w, int h,
         const data_t *src_image, data_t *dst_image);
 
-void conv_mdc(
+void conv_dataflow(
         int w, int h,
         hls::stream<data_t> &src_image, hls::stream<data_t> &dst_image);
 

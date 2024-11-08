@@ -3,10 +3,10 @@
 - **Vitis HLS**: C/C++ High-Level Synthesis (HLS) designs, based on the AMD HLS tools;
 
     - `color_detect_cv`: Monolithic [color detection accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/colordetect-bm.html), based on the Vitis vision library;
-    - `dilate_cv`: [image dilate accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_36), based on the Vitis vision library;
-    - `erode_cv`: [image erode accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_39?section=erode), based on the Vitis vision library;
-    - `rgb2hsv_cv`: [RGB to HSV accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_90), based on the Vitis vision library;
-    - `threshold_cv`: [thresholding accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_101), based on the Vitis vision library;
+    - `dilate_cv`: [Image dilate accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_36), based on the Vitis vision library;
+    - `erode_cv`: [Image erode accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_39?section=erode), based on the Vitis vision library;
+    - `rgb2hsv_cv`: [RGB to HSV converter accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_90), based on the Vitis vision library;
+    - `threshold_cv`: [Thresholding accelerator](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/api-reference.html_1_101), based on the Vitis vision library;
     - `fast_corner_detect`: Monolithic [FAST corner detection](https://docs.amd.com/r/en-US/Vitis_Libraries/vision/fast-bm.html), based on the Vitis vision library;
     - `conv_dataflow`: 2D convolution accelerator, based on the Vivado HLS examples;
     - `fir_128_dataflow`: FIR filter (128 taps), based on the Vivado HLS examples;

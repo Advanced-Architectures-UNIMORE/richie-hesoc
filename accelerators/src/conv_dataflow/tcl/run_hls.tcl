@@ -1,3 +1,4 @@
+#
 # Copyright 2020 Xilinx, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,28 +14,32 @@
 # limitations under the License.
 
 # Create a project
-open_project -reset proj_conv
+open_project -reset proj_conv_dataflow
 
 # Add design files
-add_files conv.cpp 
+add_files src/conv.cpp
 # Add test bench & files
-add_files -tb conv_tb.cpp
+add_files -tb src/conv_tb.cpp
 
 # Set the top-level function
-set_top conv_mdc
+set_top conv_dataflow
 
 # ########################################################
 # Create a solution
 open_solution -reset solution1
 # Define technology and clock rate
-set_part {xcvu9p-flga2104-2-i}
-create_clock -period 6.66
+set_part  {xczu9eg-ffvb1156-2-e}
+create_clock -period 3
 
-# Source x_hls.tcl to determine which steps to execute
-source x_hls.tcl
+# Set to 0: to run setup
+# Set to 1: to run setup and synthesis
+# Set to 2: to run setup, synthesis and RTL simulation
+# Set to 3: to run setup, synthesis, RTL simulation and RTL synthesis
+# Any other value will run setup only
+set hls_exec 1
+
+# C simulation
 csim_design
-# Set any optimization directives
-# End of directives
 
 if {$hls_exec == 1} {
 	# Run Synthesis and Exit
@@ -48,9 +53,8 @@ if {$hls_exec == 1} {
 } elseif {$hls_exec == 3} { 
 	# Run Synthesis, RTL Simulation, RTL implementation and Exit
 	csynth_design
-	
 	cosim_design
-	export_design
+	export_design -rtl verilog -flow impl
 } else {
 	# Default is to exit after setup
 	csynth_design

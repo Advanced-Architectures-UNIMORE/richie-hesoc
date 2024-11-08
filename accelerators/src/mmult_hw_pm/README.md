@@ -1,7 +1,9 @@
-# 2D convolution
+# Matrix multiplication (system-level parallelism)
 
 ## About this accelerator
-2D convolution, from the Vivado HLS examples. 
+Matrix multiplication accelerator with partial array partitioning and loop unrolling to implement spatial parallelism (PM). 
+Array partitioning is applied to the interface arrays, that are synthesized into distinct data ports.
+This optimization is automatically propagated to the memory subsystem (and interconnect) of the <span style="font-variant:small-caps;">Richie HeSoC</span> using its SLD toolchain. 
 
 ## About this repository
 The structure of the repository is as follows:

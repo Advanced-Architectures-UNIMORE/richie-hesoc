@@ -9,15 +9,19 @@ This directory comprises the source files, dependencies and EDA scripts to desig
     
 ## Environments
 
-### Vitis HLS
-Install the following prerequisites:
+### Vitis/Vivado HLS (standard)
+Our collection of HLS accelerators has been tested with `Vivado HLS 2019.2`.
+To prepare your environment you just need to source the *settings64.sh* script, in the tool build directory.
+
+### Vitis HLS Vision Library
+Install the following tools:
 
 1) Install **AMD Vitis 2022.2** on your machine;
 2) <span style="font-variant:small-caps;">[optional]</span> If you are design accelerators based on the **Vitis Vision Library**, then It is recommended to do a fresh installation of OpenCV 4.4.0. In this case, please refer to the [repository guidelines](https://github.com/Xilinx/Vitis_Libraries/blob/2022.2/vision/README.md).
 
 Then to prepare your environment for using **AMD Vitis 2022.2** and develop accelerators based on the **Vitis Accelerated Libraries**:
 
-1) Open the environment script `env/vitis_hls.sh`;
-2) Fill the information concerning the `vitis_install_path`, which consists of the path to your Vitis build directory, e.g., *some/path/Vitis/2022.2*. This is the same path to the the *settings64.sh* file;
+1) Open the environment script `env/vitis_hls_vision_library.sh`;
+2) Fill the information concerning the `vitis_install_path`, which consists of the path to your Vitis build directory, e.g., *some/path/Vitis/2022.2*. This is the same path to the the *settings64.sh* script;
 3) <span style="font-variant:small-caps;">[optional]</span> Fill the information concerning the `opencv_install_path`, which consists of the path to your OpenCV directory, e.g., *some/path/opencv*. This is the same path to the the OpenCV sources, libraries and build;
-4) Execute the script `env/vitis_hls.sh`.
+4) Execute the script `env/vitis_hls_vision_library.sh`.

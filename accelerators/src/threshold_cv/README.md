@@ -1,18 +1,17 @@
-# 2D convolution
+# Thresholding
 
 ## About this accelerator
-2D convolution, from the Vivado HLS examples. 
+Thresholding accelerator, from the Vitis HLS Vision Library. 
 
 ## About this repository
 The structure of the repository is as follows:
 
 - `src`: *Accelerator sources*;
-- `tcl`: *TCL scripts* automating the HLS build process;
-- `sw`: *Software golden model* to generate golden stimuli and components for C simulation and RTL verification;
+- `build`: *Configuration parameters*;
 - <span style="font-variant:small-caps;">[build]</span> `rtl`: *Output RTL directory*, where the <span style="font-variant:small-caps;">Richie SLD toolchain</span> expects to retrieve the hardware accelerator components.
 
 ## How to build
-Source your `Vivado HLS 2019.2` environment and execute the command `make run_hls`.
+Source the required environment (under `env/vitis_hls_vision_library.sh`) and execute the command `make runhls`.
 
 ## How to retrieve RTL
 After a succesfull HLS synthesis, execute `make get_rtl`.

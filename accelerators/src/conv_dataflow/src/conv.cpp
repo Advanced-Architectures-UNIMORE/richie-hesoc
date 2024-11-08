@@ -223,7 +223,7 @@ void filter11x11_orig(int width, int height, const data_t *src, data_t *dst)
 			       filt11_coeff, filt11_coeff);
 }
 
-void conv_mdc(int width, int height,
+void conv_dataflow(int width, int height,
 		      hls::stream<data_t> &src, hls::stream<data_t> &dst)
 {
 #pragma HLS INTERFACE axis port=&src 

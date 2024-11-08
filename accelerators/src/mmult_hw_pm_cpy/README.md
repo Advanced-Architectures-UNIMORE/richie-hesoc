@@ -1,7 +1,8 @@
-# 2D convolution
+# Matrix multiplication (prefetcher + accelerator-level parallelism)
 
 ## About this accelerator
-2D convolution, from the Vivado HLS examples. 
+Matrix multiplication accelerator with partial array partitioning and loop unrolling to implement spatial parallelism (PM). 
+Array partitioning is applied to the local accelerator arrays.
 
 ## About this repository
 The structure of the repository is as follows:

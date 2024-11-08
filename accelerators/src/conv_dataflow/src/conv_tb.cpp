@@ -50,7 +50,7 @@ int main(void)
     // Generate reference convolution image
     filter11x11_orig(TEST_IMG_COLS, TEST_IMG_ROWS, src_img, ref_img);
     // Generate DUT convolution image
-    conv_mdc(TEST_IMG_COLS, TEST_IMG_ROWS, src_img_strm, dut_img_strm);
+    conv_dataflow(TEST_IMG_COLS, TEST_IMG_ROWS, src_img_strm, dut_img_strm);
     // Check DUT vs reference result
     ofstream myfile;
     std::stringstream stream;
