@@ -18,17 +18,17 @@
 
 module cluster_peripherals import pulp_cluster_package::*;
 #(
-  parameter NB_CORES       = 4,
-  parameter NB_HWPE        = 1,
-  parameter NB_MPERIPHS    = 1,
-  parameter NB_CACHE_BANKS = 4,
-  parameter NB_SPERIPHS    = 8,
-  parameter NB_TCDM_BANKS  = 8,
-  parameter NB_HWPE_PORTS  = 1,
-  parameter ROM_BOOT_ADDR  = 32'h1A000000,
-  parameter BOOT_ADDR      = 32'h1C000000,
-  parameter EVNT_WIDTH     = 8,
-  parameter FEATURE_DEMUX_MAPPED = 1
+  parameter NB_CORES              = 4,
+  parameter NB_HWPE               = 1,
+  parameter NB_MPERIPHS           = 1,
+  parameter NB_CACHE_BANKS        = 4,
+  parameter NB_SPERIPHS           = 8,
+  parameter NB_SPERIPHS_HWPE      = 0,
+  parameter NB_TCDM_BANKS         = 8,
+  parameter ROM_BOOT_ADDR         = 32'h1A000000,
+  parameter BOOT_ADDR             = 32'h1C000000,
+  parameter EVNT_WIDTH            = 8,
+  parameter FEATURE_DEMUX_MAPPED  = 1
 )
 (
   input  logic                        clk_i,
@@ -50,7 +50,8 @@ module cluster_peripherals import pulp_cluster_package::*;
   
   output logic                        busy_o,
   
-  XBAR_PERIPH_BUS.Slave               speriph_slave[NB_SPERIPHS-1:0],
+  XBAR_PERIPH_BUS.Slave               speriph_slave[NB_SPERIPHS-NB_SPERIPHS_HWPE-2:0],
+  XBAR_PERIPH_BUS.Slave               speriph_hwpe_slave[NB_SPERIPHS_HWPE-1:0],
   XBAR_PERIPH_BUS.Slave               core_eu_direct_link[NB_CORES-1:0],
   
   XBAR_PERIPH_BUS.Master              dma_cfg_master,
@@ -162,10 +163,11 @@ module cluster_peripherals import pulp_cluster_package::*;
   );
    
   event_unit_top #(
-    .NB_CORES     ( NB_CORES   ),
-    .NB_BARR      ( NB_CORES   ),
-    .PER_ID_WIDTH ( NB_CORES+1 ),
-    .EVNT_WIDTH   ( EVNT_WIDTH )
+    .NB_CORES         ( NB_CORES   ),
+    .NB_BARR          ( NB_CORES   ),
+    .PER_ID_WIDTH     ( NB_CORES+1 ),
+    .EVNT_WIDTH       ( EVNT_WIDTH ),
+    .SOC_FIFO_DEPTH   ( 32         )
   ) event_unit_flex_i (
     .clk_i                  ( clk_i                  ),
     .rst_ni                 ( rst_ni                 ),
@@ -233,7 +235,8 @@ module cluster_peripherals import pulp_cluster_package::*;
   mp_pf_icache_ctrl_unit #(
     .NB_CACHE_BANKS ( NB_CACHE_BANKS       ),
     .NB_CORES       ( NB_CORES             ),
-    .ID_WIDTH       ( NB_CORES+NB_MPERIPHS )
+    .ID_WIDTH       ( NB_CORES+NB_MPERIPHS ),
+    .FEATURE_STAT   ( 1'b1                 )
   ) icache_ctrl_unit_i (
     .clk_i                  ( clk_i                           ),
     .rst_ni                 ( rst_ni                          ),
@@ -255,30 +258,25 @@ module cluster_peripherals import pulp_cluster_package::*;
   assign dma_cfg_master.wdata = speriph_slave[SPER_DMA_ID].wdata;
   assign dma_cfg_master.be    = speriph_slave[SPER_DMA_ID].be;
   assign dma_cfg_master.id    = speriph_slave[SPER_DMA_ID].id;
-    
-  // accelerator binding
-  // assign speriph_slave[SPER_HWPE_ID].gnt     = hwce_cfg_master.gnt;
-  // assign speriph_slave[SPER_HWPE_ID].r_rdata = hwce_cfg_master.r_rdata;
-  // assign speriph_slave[SPER_HWPE_ID].r_opc   = hwce_cfg_master.r_opc;
-  // assign speriph_slave[SPER_HWPE_ID].r_id    = hwce_cfg_master.r_id;
-  // assign speriph_slave[SPER_HWPE_ID].r_valid = hwce_cfg_master.r_valid;
-  
-  // assign hwce_cfg_master.req   = speriph_slave[SPER_HWPE_ID].req;
-  // assign hwce_cfg_master.add   = speriph_slave[SPER_HWPE_ID].add;
-  // assign hwce_cfg_master.wen   = speriph_slave[SPER_HWPE_ID].wen;
-  // assign hwce_cfg_master.wdata = speriph_slave[SPER_HWPE_ID].wdata;
-  // assign hwce_cfg_master.be    = speriph_slave[SPER_HWPE_ID].be;
-  // assign hwce_cfg_master.id    = speriph_slave[SPER_HWPE_ID].id;
+
+  // Peripheral ID = 4 (SPER_UNUSED_ID) is currently unused. 
+  // It was originally adopted for HWPE devices, but in the 
+  // context of the accelerator-rich cluster It has been turned 
+  // into a generic peripheral port. 
+  assign speriph_slave[SPER_UNUSED_ID].r_valid = '1;
+  assign speriph_slave[SPER_UNUSED_ID].gnt = '1;
+  assign speriph_slave[SPER_UNUSED_ID].r_rdata = 32'hdeadbeef;
+  assign speriph_slave[SPER_UNUSED_ID].r_id = '0;
 
   // peripheral accelerator interface
   periph_acc_intf #(
-    .NB_HWPE        ( NB_HWPE        ),
-    .NB_SPERIPHS    ( NB_SPERIPHS    )
+    .NB_SPERIPHS            ( NB_SPERIPHS                   ),
+    .NB_SPERIPHS_HWPE       ( NB_SPERIPHS_HWPE              )
   ) periph_acc_intf_i (
     .clk                    ( clk_i                         ),
     .rst_n                  ( rst_ni                        ),
     .test_mode              ( test_mode_i                   ),
-    .speriph_slave          ( speriph_slave                 ),
+    .speriph_hwpe_slave     ( speriph_hwpe_slave            ),
     .hwpe_cfg_master        ( hwce_cfg_master               )
   );
 

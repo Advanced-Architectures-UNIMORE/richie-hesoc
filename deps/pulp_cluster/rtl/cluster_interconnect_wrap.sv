@@ -37,11 +37,13 @@ module cluster_interconnect_wrap
   parameter ADDREXT             = 1'b0,
   parameter CLUSTER_ALIAS       = 1'b0,
   parameter CLUSTER_ALIAS_BASE  = 12'h000,
-  parameter L1_AMO_PRESENT      = 1'b0
+  parameter L1_AMO_PRESENT      = 1'b0,
+  parameter EVNT_WIDTH          = 8
 )
 (
   input logic                          clk_i,
   input logic                          rst_ni,
+  input logic [5:0]                    cluster_id_i,
   XBAR_TCDM_BUS.Slave                  core_tcdm_slave[NB_CORES+NB_HWACC_PORTS-1:0],
   input logic [NB_CORES-1:0][5:0]      core_tcdm_slave_atop,
   XBAR_PERIPH_BUS.Slave                core_periph_slave[NB_CORES-1:0],
@@ -54,7 +56,10 @@ module cluster_interconnect_wrap
   TCDM_BANK_MEM_BUS.Master             tcdm_sram_master[NB_TCDM_BANKS-1:0],
   XBAR_PERIPH_BUS.Master               speriph_master[NB_SPERIPHS-1:0],
   output logic [NB_SPERIPHS-1:0][5:0]  speriph_master_atop,
-  input logic [1:0]                    TCDM_arb_policy_i
+  input logic [1:0]                    TCDM_arb_policy_i,
+  // SoC SW-based events
+  output logic                         speriph_soc_sw_evt_valid,
+  output logic [EVNT_WIDTH-1:0]        speriph_soc_sw_evt_data
 );
 
   localparam TCDM_ID_WIDTH = NB_CORES+NB_DMAS+NB_EXT+NB_HWACC_PORTS;
@@ -352,28 +357,111 @@ module cluster_interconnect_wrap
   logic     [PE_XBAR_N_INPS-1:0]  pe_inp_req,
                                   pe_inp_gnt,
                                   pe_inp_rvalid;
+
+  /* Routing of peripheral signals */
   localparam pe_idx_t PE_IDX_EXT = pulp_cluster_package::SPER_EXT_ID;
-  function automatic pe_idx_t addr_to_pe_idx(input pe_addr_t addr, input logic [31:0] addrext);
+  localparam PE_HWPE_REF_PORT = pulp_cluster_package::SPER_EXT_ID + 1;
+
+  function automatic pe_idx_t addr_to_pe_idx(input pe_addr_t addr, input logic [31:0] addrext, input logic is_local_periph_req);
+
+    // Signals to calculate peripheral index
+    pe_addr_t r_addr;
+    pe_addr_t r_addr_shrink;
+    logic r_addr_hwpe_ext;
+
+    logic [11:0]  cluster_start_addr;
+    logic [11:0]  cluster_end_addr;
+
+    logic [11:0]  cluster_max_addr;
+    logic [11:0]  cluster_min_addr;
+
+    cluster_start_addr = 12'h100 + cluster_id_i * 12'h004; // keep aligned with clusters address mapping defined in SoC bus
+    cluster_end_addr   = 12'h104 + cluster_id_i * 12'h004; // keep aligned with clusters address mapping defined in SoC bus
+
+    cluster_min_addr = 12'h100; // keep aligned with address mapping defined in SoC bus
+    cluster_max_addr = 12'h1A0; // keep aligned with address mapping defined in SoC bus
+
+    /* Access external SoC bus through TRIX mechanism */
+
     if (ADDREXT && addrext != '0) begin
       return PE_IDX_EXT;
     end else begin
+
+      /* Access to another cluster peripherals */
+
       if (
-        // if the access is to this cluster ..
-        (addr[31:24] == 8'h10 || (CLUSTER_ALIAS && addr[31:24] == CLUSTER_ALIAS_BASE[11:4]))
-        // .. and the peripherals
+        // if the request is issued locally ..
+        is_local_periph_req 
+        // .. and SoC address mapping is respected ..
+        && (addr[31:20] >= cluster_min_addr) && (addr[31:20] < cluster_max_addr)
+        // .. and the destination is another cluster ..
+        && ((addr[31:20] < cluster_start_addr) || (addr[31:20] >= cluster_end_addr)) 
+        // .. and its peripherals
         && (addr[23:20] >= 4'h2 && addr[23:20] <= 4'h3)
       ) begin
         // decode peripheral to access
-        return addr[PE_ROUTING_MSB:PE_ROUTING_LSB];
-      end else begin
+        return PE_IDX_EXT;
+      end
+
+      /* Access to local cluster peripherals */
+
+      else if (
+        // if the access is to this cluster (either from this or another cluster) ..
+        (addr[31:24] == 8'h10 || (CLUSTER_ALIAS && addr[31:24] == CLUSTER_ALIAS_BASE[11:4]) || (!is_local_periph_req))
+        // .. and its peripherals
+        && (addr[23:20] >= 4'h2 && addr[23:20] <= 4'h3)
+      ) begin
+        // decode peripheral to access
+
+        // -> HWPE addresses (addr_range=0x200)
+        if (addr[PE_ROUTING_MSB:PE_ROUTING_LSB] >= PE_HWPE_REF_PORT) begin
+          r_addr = {addr[PE_ROUTING_MSB], 3'b0};
+          r_addr_shrink = 2 * addr[PE_ROUTING_MSB-1:PE_ROUTING_LSB];
+          r_addr_hwpe_ext = addr[PE_ROUTING_LSB-1];
+          return r_addr + r_addr_shrink + r_addr_hwpe_ext;
+        end
+
+        // -> Other periph ports (addr_range=0x400)
+        else begin
+          r_addr = addr[PE_ROUTING_MSB:PE_ROUTING_LSB];
+          r_addr_shrink = '0;
+          r_addr_hwpe_ext = '0;
+          return r_addr;
+        end
+
+      end
+
+      /* Access external SoC bus */
+
+      else begin
         // otherwise decode to 'external' peripheral
         return PE_IDX_EXT;
       end
     end
   endfunction
+
+  function automatic logic is_sw_based_soc_evt(input pe_idx_t pe_inp_idx, input logic [31:0] mperiph_addr);
+    
+    /* Generate valid if data is routed to SoC event FIFO */
+
+    if( 
+      // If the PE target is the event unit...
+      ((pe_inp_idx == pulp_cluster_package::SPER_EVENT_U_ID) || (pe_inp_idx == pulp_cluster_package::SPER_EVENT_U_ID + 1)) 
+      // ...and the SoC FIFO events
+      && (mperiph_addr == 32'h10200F00)
+    ) begin
+      return 1'b1;
+    end
+
+    else begin
+      return 1'b0;
+    end
+
+  endfunction
+
   for (genvar i = 0; i < NB_CORES; i++) begin : gen_pe_xbar_bind_cores
     assign pe_inp_req[i] = core_periph_slave[i].req;
-    assign pe_inp_idx[i] = addr_to_pe_idx(core_periph_slave[i].add, core_periph_slave_addrext[i]);
+    assign pe_inp_idx[i] = addr_to_pe_idx(core_periph_slave[i].add, core_periph_slave_addrext[i], '1);
     assign pe_inp_wdata[i].addr = core_periph_slave[i].add;
     assign pe_inp_wdata[i].data = core_periph_slave[i].wdata;
     assign pe_inp_wdata[i].id   = 1 << i;
@@ -387,18 +475,26 @@ module cluster_interconnect_wrap
     assign core_periph_slave[i].r_valid = pe_inp_rvalid[i];
   end
   for (genvar i = 0; i < NB_MPERIPHS; i++) begin : gen_pe_xbar_bind_mperiphs
-    assign pe_inp_req[i+NB_CORES] = mperiph_slave[i].req;
-    assign pe_inp_idx[i+NB_CORES] = addr_to_pe_idx(mperiph_slave[i].add, '0);
+    // Capture SW-based SoC events, then route them to EU interface
+    // NB: In case an event is captured, the peripheral memory-mapped request is not forwarded,
+    // but routed to the streaming-based SoC event interface of the event unit. The behavior is 
+    // totally transparent to the SW. Take a look at function "is_sw_based_soc_evt" to gather more 
+    // info about the address locations that trigger this.
+    assign speriph_soc_sw_evt_valid = is_sw_based_soc_evt(pe_inp_idx[i+NB_CORES], pe_inp_wdata[i+NB_CORES].addr);
+    assign speriph_soc_sw_evt_data  = speriph_soc_sw_evt_valid ? pe_inp_wdata[i+NB_CORES].data : '0;
+    // Pilot master peripheral requests
+    assign pe_inp_req[i+NB_CORES] = speriph_soc_sw_evt_valid ? '0 : mperiph_slave[i].req;
+    assign pe_inp_idx[i+NB_CORES] = addr_to_pe_idx(mperiph_slave[i].add, '0, '0);
     assign pe_inp_wdata[i+NB_CORES].addr  = mperiph_slave[i].add;
     assign pe_inp_wdata[i+NB_CORES].data  = mperiph_slave[i].wdata;
     assign pe_inp_wdata[i+NB_CORES].id    = 1 << (i + NB_CORES);
     assign pe_inp_wdata[i+NB_CORES].we_n  = mperiph_slave[i].wen;
     assign pe_inp_wdata[i+NB_CORES].be    = mperiph_slave[i].be;
     assign pe_inp_wdata[i+NB_CORES].atop  = '0;
-    assign mperiph_slave[i].gnt     = pe_inp_gnt[i+NB_CORES];
+    assign mperiph_slave[i].gnt     = speriph_soc_sw_evt_valid ? '1 : pe_inp_gnt[i+NB_CORES];
     assign mperiph_slave[i].r_rdata = pe_inp_rdata[i+NB_CORES].data;
     assign mperiph_slave[i].r_opc   = pe_inp_rdata[i+NB_CORES].opc;
-    assign mperiph_slave[i].r_valid = pe_inp_rvalid[i+NB_CORES];
+    assign mperiph_slave[i].r_valid = speriph_soc_sw_evt_valid ? '1 : pe_inp_rvalid[i+NB_CORES];
   end
 
   // Peripherals: Bind outputs.
@@ -424,6 +520,7 @@ module cluster_interconnect_wrap
 
   // Peripheral Interconnect
   logic [PE_XBAR_N_INPS-1:0][PE_XBAR_N_OUPS-1:0] pe_req, pe_gnt;
+
   // Demux requests of inputs and mux responses to inputs.
   for (genvar i = 0; i < PE_XBAR_N_INPS; i++) begin : gen_pe_xbar_inps
     stream_demux #(
@@ -458,6 +555,7 @@ module cluster_interconnect_wrap
       .oup_valid_o  (pe_inp_rvalid[i]),
       .oup_ready_i  (1'b1)
     );
+  
   end
   // Arbitrate requests to outputs.
   for (genvar i = 0; i < PE_XBAR_N_OUPS; i++) begin : gen_pe_xbar_oups

@@ -29,6 +29,7 @@ module dmac_wrap
   parameter DATA_WIDTH         = 32,
   parameter ADDR_WIDTH         = 32,
   parameter BE_WIDTH           = DATA_WIDTH/8,
+  parameter TF_REQ_FIFO_DEPTH  = 2,
   parameter NUM_STREAMS        = 4
 ) (
   input logic                      clk_i,
@@ -107,16 +108,16 @@ module dmac_wrap
   `AXI_ASSIGN_TO_RESP(soc_rsp, ext_master)
 
   cluster_dma_frontend #(
-    .NumCores          ( NB_CORES        ),
-    .PerifIdWidth      ( PE_ID_WIDTH     ),
-    .DmaAxiIdWidth     ( AXI_ID_WIDTH    ),
-    .DmaDataWidth      ( AXI_DATA_WIDTH  ),
-    .DmaAddrWidth      ( AXI_ADDR_WIDTH  ),
-    .AxiAxReqDepth     ( 2               ),
-    .TfReqFifoDepth    ( 2               ),
-    .NumStreams        ( NUM_STREAMS     ),
-    .axi_req_t         ( slv_req_t       ),
-    .axi_res_t         ( slv_resp_t      )
+    .NumCores          ( NB_CORES           ),
+    .PerifIdWidth      ( PE_ID_WIDTH        ),
+    .DmaAxiIdWidth     ( AXI_ID_WIDTH       ),
+    .DmaDataWidth      ( AXI_DATA_WIDTH     ),
+    .DmaAddrWidth      ( AXI_ADDR_WIDTH     ),
+    .AxiAxReqDepth     ( 2                  ),
+    .TfReqFifoDepth    ( TF_REQ_FIFO_DEPTH  ),
+    .NumStreams        ( NUM_STREAMS        ),
+    .axi_req_t         ( slv_req_t          ),
+    .axi_res_t         ( slv_resp_t         )
   ) i_cluster_dma_frontend (
     .clk_i                   ( clk_i                   ),
     .rst_ni                  ( rst_ni                  ),

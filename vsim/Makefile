@@ -1,49 +1,69 @@
-# =====================================================================
-# Title:        vsim.mk
-#
-# $Date:        18.1.2022
-# =====================================================================
-#
-# Copyright (C) 2021 University of Modena and Reggio Emilia.
-#
-# Author: Gianluca Bellocchi, University of Modena and Reggio Emilia.
-#
-# =====================================================================
+# Copyright 2022 University of Modena and Reggio Emilia
+# Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-ROOT 					:= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+ROOT 							= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-TEST_PATH 				:= $(realpath ${ROOT}/../test )
-SLM_FILES 				:= $(TEST_PATH)/slm_files
+VSIM_BUILD_DIR 		= $(ROOT)/runs
+VSIM_UTILS				= $(ROOT)/utils
 
-# =====================================================================
-# Description:  Application test.
-# =====================================================================
+VSIM_SW_NAME 			= $(shell basename $(VSIM_SW_PATH))
+VSIM_PRJ_NAME			?= $(TARGET_PLATFORM)_$(VSIM_SW_NAME)
+VSIM_PRJ_PATH			= $(VSIM_BUILD_DIR)/$(VSIM_PRJ_NAME)
+VSIM_SLM_FILES		= $(VSIM_PRJ_PATH)/slm_files
 
-TEST_APP := $(realpath ${SRC_PATH}/${TARGET_OV}/test/sw )
+VSIM_GUI 					?= 0
+
+export
+
+all: check_exist create_env build_hw build_sw start_sim save_results
 
 # =====================================================================
-# Description:  QuestaSim GUI.
+# Recipes:		Start simulation
 # =====================================================================
 
-VSIM_GUI := 1
+save_results:
+	@mkdir -p $(VSIM_PRJ_PATH)/results
+	@mv $(VSIM_PRJ_PATH)/transcript $(VSIM_PRJ_PATH)/results/$(VSIM_SW_NAME).txt
 
-all: compile start_sim
+start_sim:
+	@echo "[sh] >> Start simulation"
+	@export VSIM_PRJ_PATH="$(VSIM_PRJ_PATH)"
+	@cd $(VSIM_PRJ_PATH) && $(VSIM_UTILS)/$@.sh $(VSIM_PRJ_PATH) $(VSIM_GUI)
 
-start_sim: 
-	@echo -e '>> Start simulation.'
-	@./$@.sh ${VSIM_GUI} ${TARGET_OV}
-	
-gen_slm_files:
-	@echo -e '>> Searching for software test in $(TEST_APP).'
-	@$(TEST_PATH)/$@.sh $(TEST_APP)
+# =====================================================================
+# Recipes:		Retrieve software binaries
+# =====================================================================
 
-compile:
-	@echo -e '>> Compiling RTL.'
-	@./$@.sh
+build_sw:
+	@echo -e "[sh] >> Partition of SW binaries and generation of SLM files"
+	@mkdir -p $(VSIM_SLM_FILES)
+	@echo -e "[sh] >> Searching for <$(VSIM_SW_NAME)> binaries under $(VSIM_SW_PATH)"
+	@$(VSIM_UTILS)/$@.sh
+
+# =====================================================================
+# Recipes:		Build hardware
+# =====================================================================
+
+build_hw:
+	@echo "[sh] >> Compiling RTL"
+	@mv ${ROOT}/$@.tcl $(VSIM_PRJ_PATH)
+	@cd $(VSIM_PRJ_PATH) && $(VSIM_UTILS)/$@.sh
+
+# =====================================================================
+# Recipes:		Create simulation environment
+# =====================================================================
+
+create_env:
+	@echo "[sh] >> Create simulation environment for project -> $(VSIM_PRJ_NAME)"
+	@mkdir -p $(VSIM_PRJ_PATH)
+
+# =====================================================================
+# Recipes:		Utils for simulation environment
+# =====================================================================
+
+check_exist:
+	@if [ -d "$(VSIM_PRJ_PATH)" ]; then (echo "A project for target <$(VSIM_PRJ_NAME)> already exists."; exit 1) ; fi
 
 clean:
-	@rm -rf work
-	@rm -f $(SLM_FILES)/*
-	@rm -f compile.tcl vsim.wlf modelsim.ini transcript vivado* *.log *.bak
-	@rm -rf work modelsim_libs
-
+	@rm -rf $(VSIM_PRJ_PATH)
+	@rm -f build_hw.tcl
