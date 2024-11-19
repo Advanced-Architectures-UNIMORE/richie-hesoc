@@ -126,6 +126,8 @@ module cluster_dma_frontend #(
     `IDMA_TYPEDEF_FULL_RSP_T(idma_rsp_t, addr_t)
 
     burst_req_t burst_req;
+    idma_req_t idma_req;
+    idma_pkg::idma_busy_t idma_busy;
 
     // transaction id
     logic [NumStreams-1:0][27:0] next_id, done_id;
@@ -153,8 +155,6 @@ module cluster_dma_frontend #(
 
     // the backend chosen
     logic [DistrIdxWidth-1:0]    be_idx_arb;
-
-    idma_pkg::idma_busy_t   idma_busy;
 
     // generate registers for cores
     for (genvar i = 0; i < NumCores; i++) begin : gen_core_regs
@@ -234,19 +234,61 @@ module cluster_dma_frontend #(
     );
 
     // map arbitrated transfer descriptor onto generic burst request
-    always_comb begin : proc_map_to_1D_burst
-        burst_req             = '0;
-        burst_req.src         =  transf_descr_arb.src_addr;
-        burst_req.dst         =  transf_descr_arb.dst_addr;
-        burst_req.num_bytes   =  transf_descr_arb.num_bytes;
-        burst_req.burst_src   = axi_pkg::BURST_INCR;
-        burst_req.burst_dst   = axi_pkg::BURST_INCR;
-        burst_req.decouple_rw = transf_descr_arb.decouple;
-        burst_req.deburst     = transf_descr_arb.deburst;
-        burst_req.serialize   = transf_descr_arb.serialize;
+    // always_comb begin : proc_map_to_1D_burst
+        // burst_req             = '0;
+        // burst_req.src         =  transf_descr_arb.src_addr;
+        // burst_req.dst         =  transf_descr_arb.dst_addr;
+        // burst_req.num_bytes   =  transf_descr_arb.num_bytes;
+        // burst_req.burst_src   = axi_pkg::BURST_INCR;
+        // burst_req.burst_dst   = axi_pkg::BURST_INCR;
+        // burst_req.decouple_rw = transf_descr_arb.decouple;
+        // burst_req.deburst     = transf_descr_arb.deburst;
+        // burst_req.serialize   = transf_descr_arb.serialize;
 
         // assign zero length signal
         // zero_length           =  transf_descr_arb.num_bytes == 0;
+    // end
+
+    // assemble the new request from the old
+    always_comb begin : proc_idma_req
+      idma_req = '0;
+
+      idma_req.length   = transf_descr_arb.num_bytes; // burst_req.num_bytes;
+      idma_req.src_addr = transf_descr_arb.src_addr; // burst_req.src;
+      idma_req.dst_addr = transf_descr_arb.dst_addr; // burst_req.dst;
+
+      idma_req.opt.axi_id             = burst_req.id;
+      // DMA only supports incremental burst
+      idma_req.opt.src.burst          = axi_pkg::BURST_INCR; // burst_req.burst_src;
+      idma_req.opt.src.cache          = '0; // burst_req.cache_src;
+      // AXI4 does not support locked transactions, use atomics
+      idma_req.opt.src.lock           = '0;
+      // unpriviledged, secure, data access
+      idma_req.opt.src.prot           = '0;
+      // not participating in qos
+      idma_req.opt.src.qos            = '0;
+      // only one region
+      idma_req.opt.src.region         = '0;
+      // DMA only supports incremental burst
+      idma_req.opt.dst.burst          = axi_pkg::BURST_INCR; // burst_req.burst_dst;
+      idma_req.opt.dst.cache          = '0; // burst_req.cache_dst;
+      // AXI4 does not support locked transactions, use atomics
+      idma_req.opt.dst.lock           = '0;
+      // unpriviledged, secure, data access
+      idma_req.opt.dst.prot           = '0;
+      // not participating in qos
+      idma_req.opt.dst.qos            = '0;
+      // only one region in system
+      idma_req.opt.dst.region         = '0;
+      // ensure coupled AW to avoid deadlocks
+      idma_req.opt.beo.decouple_aw    = '0;
+      idma_req.opt.beo.decouple_rw    = transf_descr_arb.decouple; // burst_req.decouple_rw;
+      // this compatibility layer only supports completely debursting
+      idma_req.opt.beo.src_max_llen   = '0;
+      // this compatibility layer only supports completely debursting
+      idma_req.opt.beo.dst_max_llen   = '0;
+      idma_req.opt.beo.src_reduce_len = transf_descr_arb.deburst; // burst_req.deburst;
+      idma_req.opt.beo.dst_reduce_len = transf_descr_arb.deburst; // burst_req.deburst;
     end
 
     rr_distributor #(
