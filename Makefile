@@ -1,126 +1,85 @@
-# =====================================================================
-# Title:        Makefile
+# Copyright 2021 University of Modena and Reggio Emilia.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
 #
-# $Date:        28.12.2021
-# =====================================================================
-#
-# Copyright (C) 2021 University of Modena and Reggio Emilia.
-#
-# Author: Gianluca Bellocchi, University of Modena and Reggio Emilia.
-#
-# =====================================================================
+# Author: Gianluca Bellocchi <gianluca.bellocchi@unimore.it>
 
-ROOT 					= $(patsubst %/,%, $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+RICHE_HW_ROOT 			:= $(shell pwd)
 
-ARCHEX_PATH 			= $(realpath $(ROOT)/archex )
-DEPS_PATH 				= $(realpath $(ROOT)/deps )
-FPGA_PATH 				= $(realpath $(ROOT)/fpga )
-GENOV_PATH 				= $(realpath $(ROOT)/genov )
-SRC_PATH 				= $(realpath $(ROOT)/ov_cfg )
-VSIM_PATH 				= $(realpath $(ROOT)/vsim )
+DEPS_PATH 				:= $(RICHE_HW_ROOT)/deps
+FPGA_PATH 				:= $(RICHE_HW_ROOT)/fpga
+SRC_PATH 				:= $(RICHE_HW_ROOT)/ov_cfg
+VSIM_PATH 				:= $(RICHE_HW_ROOT)/vsim
 
-BENDER 					= $(ROOT)/bender
-BENDER_PKG				= $(SRC_PATH)/$(TARGET_OV)/Bender.yml
-BENDER_LOCK				= $(SRC_PATH)/$(TARGET_OV)/Bender.lock
+BENDER     				?= bender
+BENDER_ROOT				?= $(RICHE_HW_ROOT)/.bender
+BENDER_PATH				?= $(shell which $(BENDER))
+BENDER_PKG				= $(SRC_PATH)/$(TARGET_PLATFORM)/Bender.yml
+BENDER_LOCK				= $(SRC_PATH)/$(TARGET_PLATFORM)/Bender.lock
+BENDER_COMMON			= $(SRC_PATH)/$(TARGET_PLATFORM)/bender-common.mk
+BENDER_FPGA				= $(SRC_PATH)/$(TARGET_PLATFORM)/bender-fpga.mk
+BENDER_SIM				= $(SRC_PATH)/$(TARGET_PLATFORM)/bender-sim.mk
 
-TARGET_OV               := floonoc_test
-TARGET_BOARD            := zcu102
+TARGET_PLATFORM  		?= floonoc_rt_noc
+TARGET_BOARD            ?= zcu102
 
-VSIM_SW_PATH			= $(realpath $(HERO_OV_OPENMP_TESTS)/helloworld)
+export TARGET_PLATFORM TARGET_BOARD SRC_PATH
 
-# Export variables to the environment. This is enables access by different
-# components (other Mk, scripts, TBs, etc.) that are invoked by this flow.
+.PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim fpga
 
-export TARGET_OV TARGET_BOARD VSIM_SW_PATH SRC_PATH
+# ================ #
+# FPGA design flow #
+# ================ #
 
-.PHONY: $(BENDER_PKG) $(BENDER_LOCK) vsim fpga genov
+include $(BENDER_COMMON)
+include $(BENDER_FPGA)
+include $(FPGA_PATH)/fpga.mk
 
-# =====================================================================
-# Description:  Export reports for DSE
-# =====================================================================
+fpga: fpga_init fpga_build fpga_reports
 
-reports_export:
-	cd $(ARCHEX_PATH) && $(MAKE) -s get_reports REPORT_PATH=$(FPGA_PATH)/build/$(TARGET_OV)/reports
+fpga_dse: fpga_clean fpga_init fpga_build_dse fpga_reports
 
-# =====================================================================
-# Description:  FPGA build flow
-# =====================================================================
-fpga: build_fpga reports_fpga
+fpga_reports: fpga_report_area
 
-fpga-date-22: build_fpga_date_22 reports_fpga
+fpga_build_dse: fpga_check_exist fpga_build_pulp fpga_build_dse_area
 
-reports_fpga:
-	cd $(FPGA_PATH) && $(MAKE) -s $@
+fpga_build: fpga_check_exist fpga_build_pulp fpga_build_target
 
-reports_ls:
-	ls $(FPGA_PATH)/build/$(TARGET_OV)/reports
+fpga_init: fpga_check_exist fpga_env fpga_scripts
 
-build_fpga_empty: bender $(BENDER_PKG) $(BENDER_LOCK)
-	cd $(FPGA_PATH) && $(MAKE) -s $@
+fpga_clean: fpga_clean_build
 
-build_fpga_date_22: bender $(BENDER_PKG) $(BENDER_LOCK)
-	cd $(FPGA_PATH) && $(MAKE) -s $@
+# =================== #
+# RTL simulation flow #
+# =================== #
 
-build_fpga: bender $(BENDER_PKG) $(BENDER_LOCK)
-	cd $(FPGA_PATH) && $(MAKE) -s $@
+include $(BENDER_SIM)
+include $(VSIM_PATH)/vsim.mk
 
-test: bender $(BENDER_PKG) $(BENDER_LOCK)
+vsim: vsim_init vsim_build vsim_run
 
-# =====================================================================
-# Description:  RTL simulation flow
-# =====================================================================
+vsim_run: vsim_start_sim vsim_save_results
 
-VLOG_ARGS += -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233
+vsim_build: vsim_build_hw.tcl vsim_build_hw vsim_build_sw
 
-vsim: build_hw.tcl
-	cd $(VSIM_PATH) && $(MAKE) -s all
-
-vsim_sim: build_hw.tcl
-	cd $(VSIM_PATH) && $(MAKE) -s build_sw start_sim save_results
-
-vsim_hw: build_hw.tcl
-	cd $(VSIM_PATH) && $(MAKE) -s check_exist create_env build_hw
-
-build_hw.tcl: bender $(BENDER_PKG) $(BENDER_LOCK)
-	echo 'set ROOT $(ROOT)' > $(VSIM_PATH)/$@
-	$(BENDER) script vsim \
-		--vlog-arg="$(VLOG_ARGS)" \
-		-t rtl -t test \
-		| grep -v "set ROOT" >> $(VSIM_PATH)/$@
+vsim_init: vsim_check_exist vsim_env
 
 vsim_clean:
-	cd $(VSIM_PATH) && $(MAKE) -s clean
+	rm -rf $(VSIM_PRJ_PATH)
+	rm -f vsim_build_hw.tcl
 
-# =====================================================================
-# Description:  Generation of Accelerator-Rich Multi-Cluster Systems
-# =====================================================================
+vsim_test:
+	ls $(PWD)
 
-genov:
-	cd $(GENOV_PATH) && $(MAKE) -s init clean all
-	@cp -rf $(GENOV_PATH)/output/$(TARGET_OV) $(SRC_PATH)
-
-# =====================================================================
-# Description:  Setup source management tool
-# =====================================================================
+# ===== #
+# Utils #
+# ===== #
 
 $(BENDER_PKG):
-	cp $@ $(ROOT)
+	cp $@ $(RICHE_HW_ROOT)
 
 $(BENDER_LOCK):
-	cp $@ $(ROOT)
-
-# morty: Makefile
-# 	wget https://github.com/zarubaf/morty/releases/download/v0.6.0/morty-centos.7-x86_64.tar.gz
-# 	tar -xf morty-centos.7-x86_64.tar.gz $@
-# 	rm -rf morty-centos.7-x86_64.tar.gz
-
-bender: Makefile
-	curl --proto '=https' --tlsv1.2 -sSf https://fabianschuiki.github.io/bender/init | sh -s 0.21.0
-	touch $@
-
-# =====================================================================
-# Recipes:		Utils
-# =====================================================================
+	cp $@ $(RICHE_HW_ROOT)
 
 clean:
 	@rm -rf .bender

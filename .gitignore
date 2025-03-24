@@ -1,11 +1,12 @@
-/.bender/
+.bender
 /bender
 Bender.yml
 Bender.lock
 Bender.local
 
+# Hardware sources
 /ov_cfg/*
-!/ov_cfg/floonoc_test
 
+# FPGA components
 /component.xml
 /xgui
