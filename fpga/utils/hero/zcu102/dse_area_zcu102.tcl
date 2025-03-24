@@ -1,8 +1,8 @@
-# =====================================================================
-# Project:      FPGA build
-# Title:        hero_exilzcu102.tcl
-# Description:  FPGA build of heterogeneous system on Zynq Ultrascale+.
-# =====================================================================
+# Copyright 2022 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Gianluca Bellocchi, UNIMORE
 
 # Vivado project location.
 set prj_dir [lindex $argv 0]
@@ -152,10 +152,6 @@ export_ip_user_files -of_objects [get_ips hero_exilzcu102_i_pulp_0] \
 # Define include and defines again for PULP.
 eval [exec sed {s/current_fileset/get_filesets hero_exilzcu102_i_pulp_0/} \
   ${vivado_ips}/define_defines_includes_no_simset.tcl]
-
-# Include debug settings.
-# add_files -fileset constrs_1 ./utils/hero_exilzcu102_debug.xdc
-# set_property target_constrs_file ./utils/hero_exilzcu102_debug.xdc [current_fileset -constrset]
 
 # Synthesize
 foreach run [list synth_1 hero_exilzcu102_i_pulp_0_synth_1] {
