@@ -107,16 +107,16 @@ module cluster_dma_frontend #(
 
     // 1D burst request
     typedef logic [DmaAxiIdWidth-1:0] axi_id_t;
-    typedef struct packed {
-        axi_id_t            id;
-        addr_t              src, dst;
-        num_bytes_t         num_bytes;
-        axi_pkg::cache_t    cache_src, cache_dst;
-        axi_pkg::burst_t    burst_src, burst_dst;
-        logic               decouple_rw;
-        logic               deburst;
-        logic               serialize;
-    } burst_req_t;
+    // typedef struct packed {
+    //     axi_id_t            id;
+    //     addr_t              src, dst;
+    //     num_bytes_t         num_bytes;
+    //     axi_pkg::cache_t    cache_src, cache_dst;
+    //     axi_pkg::burst_t    burst_src, burst_dst;
+    //     logic               decouple_rw;
+    //     logic               deburst;
+    //     logic               serialize;
+    // } burst_req_t;
 
     // AXI typedef
     `AXI_TYPEDEF_ALL(axi_xbar, addr_t, id_t, data_t, strb_t, user_t)
@@ -125,7 +125,7 @@ module cluster_dma_frontend #(
     `IDMA_TYPEDEF_FULL_REQ_T(idma_req_t, id_t, addr_t, tf_len_t)
     `IDMA_TYPEDEF_FULL_RSP_T(idma_rsp_t, addr_t)
 
-    burst_req_t burst_req;
+    // burst_req_t burst_req;
     idma_req_t idma_req;
     idma_pkg::idma_busy_t idma_busy;
 
@@ -349,7 +349,7 @@ module cluster_dma_frontend #(
           .UserWidth           ( DmaUserWidth                   ),
           .TFLenWidth          ( DmaAddrWidth                   ),
           .MaskInvalidData     ( 1                              ),
-          .BufferDepth         ( 16                             ),
+          .BufferDepth         ( 32                             ),
           .RAWCouplingAvail    ( 1                              ),
           .HardwareLegalizer   ( 1                              ),
           .RejectZeroTransfers ( 1                              ),
@@ -365,20 +365,38 @@ module cluster_dma_frontend #(
           .aw_chan_t           ( axi_xbar_aw_chan_t             ),
           .ar_chan_t           ( axi_xbar_ar_chan_t             )
         ) i_idma_backend (
+          //
+          // Generic
+          //
           .clk_i          ( clk_i                           ),
           .rst_ni         ( rst_ni                          ),
           .testmode_i     ( 1'b0                            ),
+          //
+          // iDMA request
+          //
           .idma_req_i     ( idma_req                        ),
           .req_valid_i    ( be_valid_stream       [i]       ),
           .req_ready_o    ( be_ready_stream       [i]       ),
+          //
+          // iDMA response
+          //
           .idma_rsp_o     ( /* NOT CONNECTED */             ),
           .rsp_valid_o    ( trans_complete_stream [i]       ),
           .rsp_ready_i    ( 1'b1                            ),
+          //
+          // Error handler
+          //
           .idma_eh_req_i  ( '0                              ),
           .eh_req_valid_i ( 1'b1                            ),
           .eh_req_ready_o ( /* NOT CONNECTED */             ),
+          //
+          // Manager
+          //
           .protocol_req_o ( axi_dma_req_o         [i]       ),
           .protocol_rsp_i ( axi_dma_res_i         [i]       ),
+          //
+          // Busy flag
+          //
           .busy_o         ( idma_busy                       )
         );
 

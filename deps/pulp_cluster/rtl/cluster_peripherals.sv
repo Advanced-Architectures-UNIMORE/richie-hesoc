@@ -43,36 +43,36 @@ module cluster_peripherals import pulp_cluster_package::*;
   input  logic [NB_CORES-1:0]         core_busy_i,
   output logic [NB_CORES-1:0]         core_clk_en_o,
   output logic                        fregfile_disable_o,
-  
+
   output logic [NB_CORES-1:0][31:0]   boot_addr_o,
-  
+
   output logic                        cluster_cg_en_o,
-  
+
   output logic                        busy_o,
-  
+
   XBAR_PERIPH_BUS.Slave               speriph_slave[NB_SPERIPHS-NB_SPERIPHS_HWPE-2:0],
   XBAR_PERIPH_BUS.Slave               speriph_hwpe_slave[NB_SPERIPHS_HWPE-1:0],
   XBAR_PERIPH_BUS.Slave               core_eu_direct_link[NB_CORES-1:0],
-  
+
   XBAR_PERIPH_BUS.Master              dma_cfg_master,
   input  logic                        dma_pe_irq_i,
   output logic                        pf_event_o,
-  
+
   output logic                        soc_periph_evt_ready_o,
   input  logic                        soc_periph_evt_valid_i,
   input  logic [EVNT_WIDTH-1:0]       soc_periph_evt_data_i,
-  
+
   input  logic [NB_CORES-1:0]         dbg_core_halted_i,
   output logic [NB_CORES-1:0]         dbg_core_halt_o,
   output logic [NB_CORES-1:0]         dbg_core_resume_o,
-  
+
   output logic                        eoc_o,
   output logic [NB_CORES-1:0]         fetch_enable_reg_o, //fetch enable driven by the internal register
   output logic [NB_CORES-1:0][4:0]    irq_id_o,
   input  logic [NB_CORES-1:0][4:0]    irq_ack_id_i,
   output logic [NB_CORES-1:0]         irq_req_o,
   input  logic [NB_CORES-1:0]         irq_ack_i,
-  
+
   // SRAM SPEED REGULATION --> TCDM
   output logic [1:0]                  TCDM_arb_policy_o,
 
@@ -83,18 +83,23 @@ module cluster_peripherals import pulp_cluster_package::*;
 
   // Control ports
   MP_PF_ICACHE_CTRL_UNIT_BUS.Master      IC_ctrl_unit_bus
+  // SP_ICACHE_CTRL_UNIT_BUS.Master      IC_ctrl_unit_bus_main[NB_CACHE_BANKS-1:0],
+  // PRI_ICACHE_CTRL_UNIT_BUS.Master     IC_ctrl_unit_bus_pri[NB_CORES-1:0],
+  // output logic [NB_CORES-1:0]         enable_l1_l15_prefetch_o,
+  // output logic [NB_CORES-1:0]         flush_valid_o,
+  // input  logic [NB_CORES-1:0]         flush_ready_i
 );
-   
+
   logic                      s_timer_out_lo_event;
   logic                      s_timer_out_hi_event;
   logic                      s_timer_in_lo_event;
   logic                      s_timer_in_hi_event;
-  
+
   logic [NB_CORES-1:0][31:0] s_cluster_events;
   logic [NB_CORES-1:0][3:0]  s_acc_events;
   logic [NB_CORES-1:0][1:0]  s_timer_events;
   logic [NB_CORES-1:0][1:0]  s_dma_events;
-  
+
   logic [NB_CORES-1:0]  s_fetch_en_cc;
 
   logic [NB_SPERIPH_PLUGS_EU-1:0]             eu_speriph_plug_req;
@@ -106,11 +111,11 @@ module cluster_peripherals import pulp_cluster_package::*;
 
   logic soc_periph_evt_valid, soc_periph_evt_ready;
   logic [7:0] soc_periph_evt_data;
-   
+
   // internal speriph bus to combine multiple plugs to new event unit
   XBAR_PERIPH_BUS speriph_slave_eu_comb();
-  MESSAGE_BUS eu_message_master();  
-  
+  MESSAGE_BUS eu_message_master();
+
   // decide between common or core-specific event sources
   generate
     for (genvar I=0; I<NB_CORES; I++) begin
@@ -120,9 +125,9 @@ module cluster_peripherals import pulp_cluster_package::*;
       assign s_dma_events[I]     = {dma_irq_i[I],dma_events_i[I]};
     end
   endgenerate
-  
+
   assign fetch_enable_reg_o = s_fetch_en_cc;
-  
+
   cluster_control_unit #(
     .PER_ID_WIDTH  ( NB_CORES+NB_MPERIPHS        ),
     .NB_CORES      ( NB_CORES                    ),
@@ -147,7 +152,7 @@ module cluster_peripherals import pulp_cluster_package::*;
     .TCDM_arb_policy_o  ( TCDM_arb_policy_o          ),
     .fregfile_disable_o ( fregfile_disable_o         )
   );
-  
+
   cluster_timer_wrap #(
     .ID_WIDTH(NB_CORES+NB_MPERIPHS)
   ) cluster_timer_wrap_i (
@@ -161,7 +166,7 @@ module cluster_peripherals import pulp_cluster_package::*;
     .irq_hi_o     ( s_timer_out_hi_event         ),
     .busy_o       ( busy_o                       )
   );
-   
+
   event_unit_top #(
     .NB_CORES         ( NB_CORES   ),
     .NB_BARR          ( NB_CORES   ),
@@ -186,7 +191,7 @@ module cluster_peripherals import pulp_cluster_package::*;
     .eu_direct_link         ( core_eu_direct_link    ),
     .soc_periph_evt_valid_i ( soc_periph_evt_valid_i ),
     .soc_periph_evt_ready_o ( soc_periph_evt_ready_o ),
-    .soc_periph_evt_data_i  ( soc_periph_evt_data_i  ),  
+    .soc_periph_evt_data_i  ( soc_periph_evt_data_i  ),
     .message_master         ( eu_message_master      )
   );
 
@@ -231,7 +236,7 @@ module cluster_peripherals import pulp_cluster_package::*;
       end
     end
   endgenerate
-     
+
   mp_pf_icache_ctrl_unit #(
     .NB_CACHE_BANKS ( NB_CACHE_BANKS       ),
     .NB_CORES       ( NB_CORES             ),
@@ -245,13 +250,28 @@ module cluster_peripherals import pulp_cluster_package::*;
     .pf_event_o             ( pf_event_o                      )
   );
 
+  // assign flush_valid_o = '0;
+  // assign pf_event_o = '0; // check if needed by the cluster!
+  // hier_icache_ctrl_unit_wrap #(
+  //   .NB_CACHE_BANKS ( NB_CACHE_BANKS       ),
+  //   .NB_CORES       ( NB_CORES             ),
+  //   .ID_WIDTH       ( NB_CORES+NB_MPERIPHS )
+  // ) icache_ctrl_unit_i (
+  //   .clk_i                       (  clk_i                           ),
+  //   .rst_ni                      (  rst_ni                          ),
+  //   .speriph_slave               (  speriph_slave[SPER_ICACHE_CTRL] ),
+  //   .IC_ctrl_unit_bus_pri        (  IC_ctrl_unit_bus_pri            ),
+  //   .IC_ctrl_unit_bus_main       (  IC_ctrl_unit_bus_main           ),
+  //   .enable_l1_l15_prefetch_o    (  enable_l1_l15_prefetch_o        )
+  // );
+
   // dma binding
   assign speriph_slave[SPER_DMA_ID].gnt     = dma_cfg_master.gnt;
   assign speriph_slave[SPER_DMA_ID].r_rdata = dma_cfg_master.r_rdata;
   assign speriph_slave[SPER_DMA_ID].r_opc   = dma_cfg_master.r_opc;
   assign speriph_slave[SPER_DMA_ID].r_id    = dma_cfg_master.r_id;
   assign speriph_slave[SPER_DMA_ID].r_valid = dma_cfg_master.r_valid;
-  
+
   assign dma_cfg_master.req   = speriph_slave[SPER_DMA_ID].req;
   assign dma_cfg_master.add   = speriph_slave[SPER_DMA_ID].add;
   assign dma_cfg_master.wen   = speriph_slave[SPER_DMA_ID].wen;
@@ -259,10 +279,10 @@ module cluster_peripherals import pulp_cluster_package::*;
   assign dma_cfg_master.be    = speriph_slave[SPER_DMA_ID].be;
   assign dma_cfg_master.id    = speriph_slave[SPER_DMA_ID].id;
 
-  // Peripheral ID = 4 (SPER_UNUSED_ID) is currently unused. 
-  // It was originally adopted for HWPE devices, but in the 
-  // context of the accelerator-rich cluster It has been turned 
-  // into a generic peripheral port. 
+  // Peripheral ID = 4 (SPER_UNUSED_ID) is currently unused.
+  // It was originally adopted for HWPE devices, but in the
+  // context of the accelerator-rich cluster It has been turned
+  // into a generic peripheral port.
   assign speriph_slave[SPER_UNUSED_ID].r_valid = '1;
   assign speriph_slave[SPER_UNUSED_ID].gnt = '1;
   assign speriph_slave[SPER_UNUSED_ID].r_rdata = 32'hdeadbeef;
