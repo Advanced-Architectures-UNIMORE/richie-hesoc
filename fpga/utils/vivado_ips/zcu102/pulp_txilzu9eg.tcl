@@ -4,9 +4,11 @@
 # Description:  Create PULP IP and add it to Vivado IP libraries.
 # =====================================================================
 
+# Create project
 create_project pulp_txilzu9eg ./pulp_txilzu9eg -part xczu9eg-ffvb1156-2-e
 set_property part xczu9eg-ffvb1156-2-e [current_project]
 
+# Source the list of dependencies for PULP
 source ./define_sources.tcl
 add_files -norecurse -fileset [current_fileset] ./pulp_txilzu9eg.v
 source ./define_defines_includes.tcl
@@ -15,6 +17,10 @@ set_property used_in_implementation false [get_files ./pulp_txilzu9eg_synth.xdc]
 set_property used_in_synthesis false [get_files ./pulp_txilzu9eg_impl.xdc]
 set_property top pulp_txilzu9eg [current_fileset]
 
+# Set synthesis properties
+set_property XPM_LIBRARIES XPM_MEMORY [current_project]
+
+# Build RTL design
 synth_design -rtl -name rtl_1
 
 ipx::package_project -root_dir . -vendor ethz.ch -library user -taxonomy /UserIP \

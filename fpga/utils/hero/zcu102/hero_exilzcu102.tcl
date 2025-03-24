@@ -11,11 +11,16 @@ puts "Vivado project is going to be located in ${prj_dir}\."
 # Vivado IPs location.
 set vivado_ips [lindex $argv 1]
 
+# Utils location.
+set utils_dir [lindex $argv 2]
+
+# Create project
 create_project hero_exilzcu102 ${prj_dir} -part xczu9eg-ffvb1156-2-e
 set_property board_part xilinx.com:zcu102:part0:3.3 [current_project]
 set_property ip_repo_paths ${vivado_ips} [current_project]
 update_ip_catalog
 
+# Create block design
 create_bd_design "hero_exilzcu102"
 update_compile_order -fileset sources_1
 
@@ -28,7 +33,7 @@ set_property -dict [list \
   CONFIG.PSU__USE__S_AXI_GP2 {0} \
   CONFIG.PSU__USE__S_AXI_GP3 {1} \
   CONFIG.PSU__USE__IRQ1 {1} \
-  CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {100} \
+  CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {50} \
 ] [get_bd_cells i_zynq_ps]
 connect_bd_net [get_bd_pins i_zynq_ps/pl_clk0] \
   [get_bd_pins i_zynq_ps/saxihp1_fpd_aclk]
@@ -153,16 +158,20 @@ export_ip_user_files -of_objects [get_ips hero_exilzcu102_i_pulp_0] \
 eval [exec sed {s/current_fileset/get_filesets hero_exilzcu102_i_pulp_0/} \
   ${vivado_ips}/define_defines_includes_no_simset.tcl]
 
-# Include debug settings.
-# add_files -fileset constrs_1 ./utils/hero_exilzcu102_debug.xdc
-# set_property target_constrs_file ./utils/hero_exilzcu102_debug.xdc [current_fileset -constrset]
+# # Include debug settings.
+# add_files -fileset constrs_1 ${utils_dir}/hero_exilzcu102_ila_debug.xdc
+# set_property target_constrs_file ${utils_dir}/hero_exilzcu102_ila_debug.xdc [current_fileset -constrset]
+
+# Set synthesis properties
+set_property XPM_LIBRARIES XPM_MEMORY [current_project]
 
 # Synthesize
 foreach run [list synth_1 hero_exilzcu102_i_pulp_0_synth_1] {
   # set_property strategy Flow_PerfOptimized_high [get_runs $run]
-  # set_property strategy Flow_AreaOptimized_high [get_runs $run]
-  set_property strategy Flow_AlternateRoutability [get_runs $run]
-  # set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY rebuilt [get_runs $run]
+  set_property strategy Flow_AreaOptimized_high [get_runs $run]
+  # set_property strategy Flow_AlternateRoutability [get_runs $run]
+  set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY rebuilt [get_runs $run]
+  # set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs $run]
   set_property STEPS.SYNTH_DESIGN.ARGS.RETIMING true [get_runs $run]
 }
 launch_runs synth_1 -jobs 12
