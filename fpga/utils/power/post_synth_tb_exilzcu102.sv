@@ -1,17 +1,15 @@
+// Copyright 2022 University of Modena and Reggio Emilia
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Gianluca Bellocchi, UNIMORE
 
-
-/* =====================================================================
- * Project:      Accelerator-rich overlay
- * Title:        post_synth_tb_exilzcu102.sv
- * Description:  Post-synthesis testbench to launch related simulations
- *               for verification, power, etc.
- *
- * $Date:        26.7.2022
- * ===================================================================== */
+// Post-synthesis testbench to launch related simulations
+// for verification, power, etc.
 
 `timescale 1 ps / 1 ps
 
-module arov_tb();
+module richie_tb();
 
   hero_exilzcu102 hero_exilzcu102_i();
 

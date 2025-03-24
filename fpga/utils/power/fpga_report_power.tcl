@@ -1,21 +1,17 @@
-# =====================================================================
-# Project:      FPGA build
-# Title:        reports_power.tcl
-# Description:  Set of procedures to:
-#               - synthesize out-of-context design.
-#               - launch post-synthesis functional simulation.
-#               - Generate power report.
-#               This script is thought to work with a pre-existing Vivado
-#               project dealing with PULP systems (e.g. AROV, HERO, etc.).
+# Copyright 2022 University of Modena and Reggio Emilia
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
 #
-# $Date:        25.07.2022
-# =====================================================================
+# Gianluca Bellocchi, UNIMORE
+
+# Set of procedures to:
 #
-# Copyright (C) 2022 University of Modena and Reggio Emilia.
+# - Synthesize out-of-context design;
+# - Launch post-synthesis functional simulation;
+# - Generate power report.
 #
-# Author: Gianluca Bellocchi, University of Modena and Reggio Emilia.
-#
-# =====================================================================
+# This script is thought to work with a pre-existing Vivado
+# project dealing with PULP systems, e.g. Richie and HERO.
 
 # ========= #
 # Variables #
@@ -101,7 +97,7 @@ update_compile_order -fileset sim_1
 set_property is_global_include true [get_files  $prj_dir/hero_exilzcu102.srcs/sources_1/bd/hero_exilzcu102/sim/hero_exilzcu102.v]
 
 # Set imported tb as top
-set_property top arov_tb [get_filesets sim_1]
+set_property top richie_tb [get_filesets sim_1]
 set_property top_lib xil_defaultlib [get_filesets sim_1]
 update_compile_order -fileset sim_1
 

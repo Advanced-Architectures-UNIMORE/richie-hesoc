@@ -1,16 +1,8 @@
-# =====================================================================
-# Project:      FPGA build
-# Title:        get_util_csv.tcl
-# Description:  TCL script to create CSV report without interaction with GUI.
+# Copyright 2022 University of Modena and Reggio Emilia.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
 #
-# $Date:        15.09.2021
-# =====================================================================
-#
-# Copyright (C) 2022 University of Modena and Reggio Emilia.
-#
-# Author: Gianluca Bellocchi, University of Modena and Reggio Emilia.
-#
-# =====================================================================
+# Gianluca Bellocchi, UNIMORE
 
 # Get utilization report from Vivado as string
 set reportLines [split [report_utilization -hierarchical -return_string -hierarchical_depth 20] "\n"]
