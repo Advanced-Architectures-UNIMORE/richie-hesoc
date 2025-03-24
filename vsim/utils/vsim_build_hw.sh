@@ -1,5 +1,5 @@
 # =====================================================================
-# Title:        build_hw.sh
+# Title:        vsim_build_hw.sh
 # Description:  Compile automatically generated TCL list of RTL designs.
 #
 # $Date:        18.1.2022
@@ -7,7 +7,7 @@
 #
 # Copyright (C) 2021 University of Modena and Reggio Emilia.
 #
-# Authors: 
+# Authors:
 #   - Andreas Kurth, ETH Zurich
 #   - Gianluca Bellocchi, University of Modena and Reggio Emilia.
 #
@@ -22,7 +22,7 @@ if [ -z "$VSIM" ]; then
 fi
 readonly VSIM
 
-${VSIM} -c -do 'source build_hw.tcl; quit'
+${VSIM} -c -do 'source vsim_build_hw.tcl; quit'
 
 # Copy .dat files locally to project
-find "$SRC_PATH/$TARGET_OV/wrappers/" -type f -name "*.dat" -exec cp "{}" $VSIM_PRJ_PATH \;
+find "$SRC_PATH/$TARGET_PLATFORM/accelerators/" -type f -name "*.dat" -exec cp "{}" $VSIM_PRJ_PATH \;

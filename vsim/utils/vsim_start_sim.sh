@@ -1,11 +1,11 @@
 # =====================================================================
-# Title:        start_sim.sh
+# Title:        vsim_start_sim.sh
 # Description:  Run simulation.
 #
 # $Date:        18.1.2022
 # =====================================================================
 #
-# Authors: 
+# Authors:
 #   - Andreas Kurth, ETH Zurich
 #   - Gianluca Bellocchi, University of Modena and Reggio Emilia.
 #
@@ -25,29 +25,29 @@ error_exit()
 if [ $UNIMORE -eq 1 ]; then
     if [ $VSIM_GUI -eq 1 ]; then
         # Run in GUI mode and silence console output.
-        echo -e "[sh] UNIMORE setup - GUI mode"
+        echo -e "UNIMORE setup - GUI mode"
         sleep 1s
-        vsim -do "source $VSIM_UTILS/run.tcl" &>/dev/null
+        vsim -do "source $VSIM_UTILS_PATH/vsim_run.tcl" &>/dev/null
     else
         # Run in console-only mode.
-        echo -e "[sh] UNIMORE setup - Console-only mode"
+        echo -e "UNIMORE setup - Console-only mode"
         sleep 1s
-        vsim -c -do "source $VSIM_UTILS/run.tcl; quit -code $quitCode"
+        vsim -c -do "source $VSIM_UTILS_PATH/vsim_run.tcl; quit -code $quitCode"
     fi
 elif [ $IIS -eq 1 ]; then
     if [ $VSIM_GUI -eq 1 ]; then
         # Run in GUI mode and silence console output.
-        echo -e "[sh] IIS setup - GUI mode"
+        echo -e "IIS setup - GUI mode"
         sleep 1s
-        vsim-10.7b -do "source $VSIM_UTILS/run.tcl" &>/dev/null
+        vsim-10.7b -do "source $VSIM_UTILS_PATH/vsim_run.tcl" &>/dev/null
     else
         # Run in console-only mode.
-        echo -e "[sh] IIS setup - Console-only mode"
+        echo -e "IIS setup - Console-only mode"
         sleep 1s
-        vsim-10.7b -c -do "source $VSIM_UTILS/run.tcl; quit -code $quitCode"
+        vsim-10.7b -c -do "source $VSIM_UTILS_PATH/vsim_run.tcl; quit -code $quitCode"
     fi
 else
     # Run in GUI mode and silence console output.
-    echo -e "[sh] Standard setup - GUI mode"
-    vsim -do "source $VSIM_UTILS/run.tcl" &>/dev/null
+    echo -e "Standard setup - GUI mode"
+    vsim -do "source $VSIM_UTILS_PATH/vsim_run.tcl" &>/dev/null
 fi

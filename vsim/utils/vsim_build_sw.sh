@@ -1,5 +1,5 @@
 # =====================================================================
-# Title:        build_sw.sh
+# Title:        vsim_build_sw.sh
 # Description:  Retrieve pre-compiled SW binaries and partition them
 #               according to the design of the PULP memory sub-system (L1/L2).
 #
@@ -25,9 +25,9 @@ error_exit()
 }
 
 # get slm_conv binary
-if [ -f "$VSIM_UTILS/slm_conv" ]; then
-    slm_conv="$VSIM_UTILS/slm_conv"
-elif [ -f "$VSIM_UTILS/slm_conv-0.3" ]; then
+if [ -f "$VSIM_UTILS_PATH/slm_conv" ]; then
+    slm_conv="$VSIM_UTILS_PATH/slm_conv"
+elif [ -f "$VSIM_UTILS_PATH/slm_conv-0.3" ]; then
     slm_conv='slm_conv-0.3'
 elif ! which $slm_conv &>/dev/null; then
     slm_conv=~/bin/slm_conv-0.3
@@ -50,10 +50,10 @@ l1_slm_path=$(ls $VSIM_SW_PATH/*l1.slm)
 l1_slm_name=$(basename ${l1_slm_path})
 
 if [ -f $l1_slm_path ]; then
-    echo -e "[sh] >> Partitioning L1 binaries at <$l1_slm_name>"
+    echo -e "Partitioning L1 binaries at <$l1_slm_name>"
     $slm_conv --swap-endianness -f $l1_slm_path \
     -w 32 -P 16 -S 1 -n 2048 -s 0x10000000 -F l1_%01S_%01P.slm
-    # -w 32 -P 16 -S 1 -n 2048 -s 0x10000000 -F l1_%01S_%01P.slm
+    # -w 32 -P 16 -S 1 -n 256 -s 0x10000000 -F l1_%01S_%01P.slm
         # NB:
         # -P --> Equal to n_l1_banks
         # -S --> Kept at 1
@@ -67,11 +67,11 @@ l2_slm_path=$(ls $VSIM_SW_PATH/*l2.slm)
 l2_slm_name=$(basename ${l2_slm_path})
 
 if [ -f $l2_slm_path ]; then
-    echo -e "[sh] >> Partitioning L2 binaries at <$l2_slm_name>"
+    echo -e "Partitioning L2 binaries at <$l2_slm_name>"
     $slm_conv --swap-endianness -f $l2_slm_path \
-    -w 32 -P 4 -S 72 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm # 1 cluster bank (S0-7:P0-3) + 4 NoC banks (S0-31:P0-3)
-    # -w 32 -P 4 -S 8 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
-    # -w 32 -P 4 -S 512 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
+    -w 32 -P 4 -S 128 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm
+    # -w 32 -P 4 -S 200 -n 1024 -s 0x1c000000 -F l2_%01S_%01P.slm # 1 cluster bank (S0-7:P0-3) + 4 NoC banks (S0-31:P0-3)
+    # -w 32 -P 4 -S 32 -n 128 -s 0x1c000000 -F l2_%01S_%01P.slm
         # NB:
         # -S --> Equal to N_SER_CUTS (see l2_mem.sv)
         # -P --> Equal to N_PAR_CUTS (see l2_mem.sv)
@@ -81,5 +81,5 @@ else
 fi
 
 # local copy of disassembly file
-exp_dis_path=$(ls $VSIM_SW_PATH/*.dis)
-cp "$exp_dis_path" "../experiment.dis"
+# exp_dis_path=$(ls $VSIM_SW_PATH/*.dis)
+cp $VSIM_SW_PATH/*.dis $VSIM_PRJ_PATH
