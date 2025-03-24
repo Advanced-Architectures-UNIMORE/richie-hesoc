@@ -1,8 +1,8 @@
-# =====================================================================
-# Project:      FPGA build
-# Title:        pulp_txilzu7ev.tcl
-# Description:  Create PULP IP and add it to Vivado IP libraries.
-# =====================================================================
+# Copyright 2022 University of Modena and Reggio Emilia.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Gianluca Bellocchi, UNIMORE
 
 create_project pulp_txilzu7ev ./pulp_txilzu7ev -part xczu7ev-ffvc1156-2-e
 set_property part xczu7ev-ffvc1156-2-e [current_project]

@@ -1,8 +1,8 @@
-# =====================================================================
-# Project:      FPGA build
-# Title:        hero_exilzcu104_export_hw.tcl
-# Description:  Export hardware design files.
-# =====================================================================
+# Copyright 2022 University of Modena and Reggio Emilia.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Gianluca Bellocchi, UNIMORE
 
 # Design name.
 set design_name [lindex $argv 0]

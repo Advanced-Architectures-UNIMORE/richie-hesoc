@@ -1,4 +1,3 @@
-
 set_property MARK_DEBUG true [get_nets {hero_exilzcu102_i/i_zynq_ps/saxigp3_wstrb[1]}]
 set_property MARK_DEBUG true [get_nets {hero_exilzcu102_i/i_zynq_ps/saxigp3_wstrb[3]}]
 set_property MARK_DEBUG true [get_nets {hero_exilzcu102_i/i_zynq_ps/saxigp3_wdata[106]}]
